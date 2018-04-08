@@ -21,50 +21,15 @@ trait AdminService extends ServiceUtils with SessionBase {
 
   private val secretKey = "dsacsodaux84fsdcs4wc32xm"
   private val log = LoggerFactory.getLogger("com.neo.sk.timeline.service.AdminService")
-  private val login = (path("login") & get & pathEndOrSingleSlash) {
-    loggingAction { _ =>
-      getFromResource("html/index.html")
-    }
-  }
-  private val home = (path("home") & get & pathEndOrSingleSlash) {
-    AdminAction { ctx =>
-      getFromResource("html/admin.html")
-    }
-  }
-  private val statistic: Route = (path("statistic") & get) {
-    AdminAction { _ =>
-      getFromResource("html/admin.html")
-    }
-  }
 
-  private val userRecords: Route = (path("userRecords") & get) {
-    AdminAction { _ =>
+  private val adminIndex:Route=pathEndOrSingleSlash {
+    loggingAction{_=>
       getFromResource("html/admin.html")
     }
   }
-
-  private val management: Route = (path("management") & get) {
-    AdminAction { _ =>
-      getFromResource("html/admin.html")
-    }
-  }
-
-  private val redElRecords: Route = (path("redElRecords") & get) {
-    AdminAction { _ =>
-      getFromResource("html/admin.html")
-    }
-  }
-
-  private val userRecharge: Route = (path("userRecharge") & get) {
-    AdminAction { _ =>
-      getFromResource("html/admin.html")
-    }
-  }
-
 
   val adminRoutes: Route =
     pathPrefix("admin") {
-      login ~ home ~ statistic ~ userRecords ~ management  ~ redElRecords ~
-      userRecharge
+      adminIndex
     }
 }
