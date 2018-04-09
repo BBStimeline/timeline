@@ -23,6 +23,8 @@ object SessionBase {
   object UserSessionKey {
     val SESSION_TYPE = "userSession"
     val uid = "uid"
+    val userId = "userId"
+    val bbsId = "bbsId"
     val loginTime = "loginTime"
   }
 
@@ -49,11 +51,14 @@ object SessionBase {
 
   case class UserSession(
     uid: Long,
+    userId: String,
+    bbsId:String = "guest",
     loginTime: Long
   ) {
     def toSessionMap = Map(
       SessionTypeKey -> UserSessionKey.SESSION_TYPE,
       UserSessionKey.uid -> uid.toString,
+      UserSessionKey.userId -> userId,
       UserSessionKey.loginTime -> loginTime.toString
     )
   }
@@ -65,6 +70,8 @@ object SessionBase {
         if (sessionMap.get(SessionTypeKey).exists(_.equals(UserSessionKey.SESSION_TYPE))) {
           Some(UserSession(
             sessionMap(UserSessionKey.uid).toLong,
+            sessionMap(UserSessionKey.userId),
+            sessionMap(UserSessionKey.bbsId),
             sessionMap(UserSessionKey.loginTime).toLong
           ))
         } else {
@@ -145,6 +152,20 @@ trait SessionBase extends SessionSupport {
         }
       case None =>
         redirect("/timeline/admin/login", StatusCodes.SeeOther)
+    }
+  }
+
+  protected def UserAction(f: UserSession => server.Route): server.Route = {
+    optionalUserSession {
+      case Some(userSession) =>
+        if (System.currentTimeMillis() - userSession.loginTime > sessionTimeOut) {
+          logger.info("Login failed for Timeout !")
+          redirect("/timeline/user/login", StatusCodes.SeeOther)
+        } else {
+          f(UserSession(userSession.uid,userSession.userId,userSession.bbsId,userSession.loginTime))
+        }
+      case None =>
+        redirect("/timeline/user/login", StatusCodes.SeeOther)
     }
   }
 

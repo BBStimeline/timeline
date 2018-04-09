@@ -15,4 +15,10 @@ object Constant {
     val TIANYA = 0
     val SELFPLUS = 1
   }
+
+  object FeedType{
+    val BOARD = "board"
+    val USER = "user"
+    val TOPIC = "topic"
+  }
 }

@@ -4,7 +4,7 @@ import com.neo.sk.timeline.utils.DBUtil.db
 import slick.jdbc.PostgresProfile.api._
 import com.neo.sk.timeline.models.SlickTables._
 import com.neo.sk.timeline.models.SlickTables
-import com.neo.sk.timeline.common.Constant.UserFollowState
+import com.neo.sk.timeline.common.Constant.{UserFollowState, UserOrigin}
 import com.neo.sk.timeline.Boot.executor
 /**
   * User: sky
@@ -145,7 +145,7 @@ object FollowDAO {
 //  )
 
   def getUserFollowBoard(userId: Long) = db.run{
-    tUserFollowBoard.filter(i => i.userId === userId && i.origin === "smth").result
+    tUserFollowBoard.filter(i => i.userId === userId && i.origin === UserOrigin.TIANYA).result
   }
 
   def getFollows(uid: Long) = {

@@ -23,10 +23,7 @@ package object ptcl {
                                msg: String = "ok"
                              ) extends CommonRsp
 
-  case class AdminConfirm(
-                           adminName:String,
-                           passWord:String
-                         )
+
 
 
 }
