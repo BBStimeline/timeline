@@ -3,6 +3,7 @@ package com.neo.sk.timeline.front.pages
 import com.neo.sk.timeline.front.Index
 import com.neo.sk.timeline.front.common.{PageRoute, Routes}
 import com.neo.sk.timeline.front.utils.{Http, JsFunc}
+import com.neo.sk.timeline.shared.ptcl.UserProtocol.AdminConfirm
 import mhtml._
 import org.scalajs.dom
 import org.scalajs.dom._

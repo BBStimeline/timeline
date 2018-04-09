@@ -25,16 +25,21 @@ import scala.util.{Failure, Success}
 object ServiceUtils {
   private val log = LoggerFactory.getLogger("com.neo.sk.timeline.service.ServiceUtils")
   private val authCheck = AppSettings.authCheck
+  case class CommonRsp(errCode: Int = 0, msg: String = "ok")
+  final val SignatureError = CommonRsp(1000001, "signature error.")
+
+  final val RequestTimeout = CommonRsp(1000003, "request timestamp is too old.")
+
+  final val AppClientIdError = CommonRsp(1000002, "appClientId error.")
+
+  final val INTERNAL_ERROR = CommonRsp(10001, "Internal error.")
+
+  final val JsonParseError = CommonRsp(10002, "Json parse error.")
 }
 
 trait ServiceUtils extends CirceSupport {
 
   import ServiceUtils._
-  import com.neo.sk.timeline.ptcl.Protocols._
-
-  final val INTERNAL_ERROR = CommonRsp(10001, "Internal error.")
-
-  final val JsonParseError = CommonRsp(10002, "Json parse error.")
 
   def htmlResponse(html: String): HttpResponse = {
     HttpResponse(entity = HttpEntity(ContentTypes.`text/html(UTF-8)`, html))

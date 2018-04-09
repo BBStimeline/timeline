@@ -45,6 +45,7 @@ object Boot extends HttpService {
       case Success(b) ⇒
         val localAddress = b.localAddress
         println(s"Server is listening on ${localAddress.getHostName}:${localAddress.getPort}")
+        println(s"Server is listening on http://localhost:30367/timeline/user/index")
       case Failure(e) ⇒
         println(s"Binding failed with ${e.getMessage}")
         system.terminate()

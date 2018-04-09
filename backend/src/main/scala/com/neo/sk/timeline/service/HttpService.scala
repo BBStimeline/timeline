@@ -14,6 +14,7 @@ import scala.concurrent.ExecutionContextExecutor
   */
 trait HttpService extends ResourceService
   with AdminService
+  with UserService
 {
 
   implicit val system: ActorSystem
@@ -29,7 +30,7 @@ trait HttpService extends ResourceService
 
   val routes: Route =
     pathPrefix("timeline") {
-      resourceRoutes ~ adminRoutes
+      resourceRoutes ~ adminRoutes ~ userRoutes
     }
 
 
