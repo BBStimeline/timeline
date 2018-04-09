@@ -26,6 +26,9 @@ object SessionBase {
     val userId = "userId"
     val bbsId = "bbsId"
     val loginTime = "loginTime"
+
+    val signature="signature"
+    val keyCode="keyCode"
   }
 
   object AdminSessionKey {

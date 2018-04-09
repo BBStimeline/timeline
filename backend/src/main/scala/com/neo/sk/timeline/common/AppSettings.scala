@@ -47,14 +47,6 @@ object AppSettings {
   val weixinDesc = weixinConfig.getString("desc")
   val withdrawLimit = weixinConfig.getInt("withdrawLimit")
 
-	val orderStatePaying = appConfig.getInt("orderStatePaying")
-	val orderStateFinish = appConfig.getInt("orderStateFinish")
-	val orderStateRefund = appConfig.getInt("orderStateRefund")
-  val orderStateClosed = appConfig.getInt("orderStateClosed")
-  val orderStateCancelled = appConfig.getInt("orderStateCancelled")
-
-  val feeMin = appConfig.getInt("feeMin")
-  val feeMax = appConfig.getInt("feeMax")
 
 
   val httpInterface = appConfig.getString("http.interface")
@@ -104,6 +96,9 @@ object AppSettings {
     appIds.zip(secureKeys).toMap
   }
 
+  /**程序基本配置*/
+  val timelineConfig = appConfig.getConfig("timeline")
+  val defaultHeadImg=timelineConfig.getString("defaultHeadImg")
 
 
 

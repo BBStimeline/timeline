@@ -15,6 +15,14 @@ import slick.dbio.DBIOAction
   */
 object UserDAO {
   private val userCache = EhCacheApi.createCache[Option[rUser]]("userCache", 1200, 1200)
+  /**登录和更新用户sessionKey*/
+  def userLogin(userId:String,sha1Pwd:String)={
+    db.run(tUser.filter(r=>r.userId===userId&&r.sha1Pwd===sha1Pwd).result.headOption)
+  }
+
+  def updateSession(uid:Long,sessionKey:String)={
+    db.run(tUser.filter(r=>r.id===uid).map(_.sessionKey).update(sessionKey))
+  }
 
   def getUserById(id: Long) = {
     userCache.apply(s"userId_$id", () =>
@@ -27,10 +35,10 @@ object UserDAO {
     tUser.filter(r => r.userId === userId).result.headOption
   }
 
-  def addUser(userId: String, time: Long, sessionKey: String, nickName: String, img: String,
+  def addUser(userId: String, time: Long, sessionKey: String, img: String,
               city: String, gender: Int, sha1pwd:String) = db.run {
     tUser.returning(tUser.map(_.id)) +=
-      rUser(-1l, userId, "",sha1pwd, time, sessionKey, time, "", "", img, city,
+      rUser(-1l, userId, "guest",sha1pwd, time, sessionKey, time, "", "", img, city,
         gender, 0, 1)
   }
 

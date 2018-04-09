@@ -12,9 +12,9 @@ import com.neo.sk.timeline.shared.ptcl.UserProtocol.UserLoginRsp
 object UserManager {
   val log = LoggerFactory.getLogger(this.getClass)
 
-  sealed trait Command
+  sealed trait Command extends UserActor.Command
 
-//  final case class UserLogout(uid: Long, replyTo:ActorRef[String]) extends Command
+  final case class UserLogout(uid: Long, replyTo:ActorRef[String]) extends Command
 //
 //  final case class PostArt(uid: Long, boardName: String, subject: String, content: String, replyTo:ActorRef[String]) extends Command
 //
@@ -28,7 +28,7 @@ object UserManager {
 //
 //  final case class UserFollowUserMsg(uid: Long, authorList: List[AuthorInfoWithType]) extends Command
 //
-//  final case class UserFollowBoardMsg(uid: Long, boardName: String, origin: String) extends Command
+  final case class UserFollowBoardMsg(uid: Long, boardName: String, origin:Int) extends Command
 //
 //  final case class UserFollowTopicMsg(uid: Long, post:PostBaseInfo, author:AuthorInfo, postTime: Long) extends Command
 //
@@ -54,6 +54,14 @@ object UserManager {
   def idle(): Behavior[Command] = {
     Behaviors.immutable[Command] { (ctx, msg) =>
       msg match {
+        case UserLogout(uid,_)=>
+          getUserActor(ctx,uid) ! msg
+          Behaviors.same
+
+        case UserFollowBoardMsg(uid,_,_)=>
+          getUserActor(ctx,uid) ! msg
+          Behaviors.same
+          
         case x=>
           log.warn(s"unknown msg: $x")
           Behaviors.unhandled

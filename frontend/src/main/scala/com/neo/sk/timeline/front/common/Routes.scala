@@ -2,18 +2,18 @@ package com.neo.sk.timeline.front.common
 
 object Routes {
 
-  private val baseUrl = "/timeline/admin"
+  object UserRoutes{
+    private val baseUrl = "/timeline/user"
+    val login= baseUrl +"/userLogin"
 
-  val login= baseUrl +"/rsf/loginSubmit"
+    val signUp = baseUrl + "/userSign"
 
-  val usertimeline = baseUrl + "/usertimeline"
-  val recordList = baseUrl + "/recordList"
-  val getUserRecords = baseUrl + "/rsf/getUserRecords"
+    /**检查Session*/
+    val checkSession = baseUrl + "/checkSession"
+  }
 
-  val searchRecord =baseUrl + s"/searchRecords"
 
-  /**检查Session*/
-  val checkSession = baseUrl + "/checkSession"
+
 }
 
 object PageRoute{
