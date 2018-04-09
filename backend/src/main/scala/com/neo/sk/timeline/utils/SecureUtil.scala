@@ -45,8 +45,12 @@ object SecureUtil {
   }
 
 
-  def getSecurePassword(password: String, ip: String, timestamp: Long): String = {
-    DigestUtils.sha1Hex(DigestUtils.md5Hex(timestamp + password) + ip + timestamp)
+  def getSecurePassword(password: String, userId:String): String = {
+    DigestUtils.sha1Hex(DigestUtils.md5Hex(password) + userId)
+  }
+
+  def checkSecurePwd(password: String, userId:String, sha1Pwd:String)={
+    getSecurePassword(password,userId)==sha1Pwd
   }
 
   def checkSignature(parameters: List[String], signature: String, secureKey: String): Boolean = {
@@ -81,6 +85,14 @@ object SecureUtil {
 
   def stringSign(str: String, secureKey: String): String = {
     DigestUtils.sha1Hex(secureKey + str)
+  }
+
+  def appSafety={
+    val now=System.currentTimeMillis()
+    val appSessionKey=SecureUtil.nonceStr(6)+now
+    val keyCode=SecureUtil.stringSign(SecureUtil.nonceStr(6),appSessionKey)
+    val signature=SecureUtil.stringSign(keyCode,appSessionKey)
+    (appSessionKey,keyCode,signature)
   }
 
   def main1(args: Array[String]) {

@@ -21,7 +21,7 @@ object MainPage extends Index {
     </div>
   )
   def app:xml.Node = {
-    CommonCheck.checkSession
+//    CommonCheck.checkSession
     <div class="jumbotron">
       <h1>Hello, manager!</h1>
       <p>Here, you can easily manage the timeline system. Wish you a happy experience!</p>

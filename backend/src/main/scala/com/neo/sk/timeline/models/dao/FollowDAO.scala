@@ -136,6 +136,10 @@ object FollowDAO {
     tUserFollowUser.filter(_.followId === uid).map(_.userId).result
   )
 
+  def isUserFollow(uid: Long, userId:String,origin:Int) = db.run(
+    tUserFollowUser.filter(i => i.userId === uid && i.followName===userId && i.origin===origin).exists.result
+  )
+
 //  def getFollowedUser() = db.run(
 //    tUserFollowUser.map(i => (i.followId, i.followBbsId)).result
 //  )

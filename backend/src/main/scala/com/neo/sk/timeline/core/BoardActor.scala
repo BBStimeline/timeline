@@ -12,13 +12,13 @@ import com.neo.sk.timeline.Boot.{executor, scheduler, timeout}
 import com.neo.sk.timeline.core.UserManager.UserLogout
 /**
   * User: sky
-  * Date: 2018/4/8
-  * Time: 11:11
+  * Date: 2018/4/9
+  * Time: 15:24
   */
-object UserActor {
+object BoardActor {
   private val log = LoggerFactory.getLogger(this.getClass)
 
-  import com.neo.sk.timeline.core.UserManager._
+  import com.neo.sk.timeline.core.BoardManager._
   trait Command
   case class TimeOut(msg: String) extends Command
   final case class SwitchBehavior(
@@ -27,72 +27,22 @@ object UserActor {
                                    durationOpt: Option[FiniteDuration] = None,
                                    timeOut: TimeOut = TimeOut("busy time error")
                                  ) extends Command
-  final case class RefreshFeed(sortType: Option[Int], pageSize: Option[Int], replyTo: Option[ActorRef[Option[List[UserFeedReq]]]]) extends Command
-
-  final case object CleanFeed extends Command
-
   private final case object BehaviorChangeKey
-  private final case object CleanFeedKey
-
-  private val maxFeedLength = 50
-  private val cleanFeedTime = 20.minutes
 
 
-  def init(uid: Long): Behavior[Command] = {
+  def init(board:String,origin:Int): Behavior[Command] = {
     Behaviors.setup[Command] { ctx =>
       implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
       Behaviors.withTimers[Command] { implicit timer =>
-        for {
-          userInfoOpt <- UserDAO.getUserById(uid)
-          feed <- UserDAO.getUserFeed(uid)
-          follows <- FollowDAO.getFollows(uid)
-        } yield {
-          val newFeed = new mutable.Queue[((String, PostBaseInfo), (Long, AuthorInfo))]()
-          val newReplyFeed = new mutable.Queue[((String, PostBaseInfo), (Long, AuthorInfo))]()
-
-          if (feed.nonEmpty) {
-            feed.filter(_.postTime != 0).sortBy(_.postTime).reverse.take(maxFeedLength).foreach { f =>
-              newFeed.enqueue(((f.feedType, PostBaseInfo(f.origin, f.boardname, f.postId)), (f.postTime, AuthorInfo(f.authorId, f.authorName, f.authorType))))
-            }
-
-            feed.filter(_.lastReplyTime != 0).sortBy(_.lastReplyTime).reverse.take(maxFeedLength).foreach { f =>
-              newReplyFeed.enqueue(((f.feedType, PostBaseInfo(f.origin, f.boardname, f.postId)), (f.lastReplyTime, AuthorInfo(f.authorId, f.authorName, f.authorType))))
-            }
-          }
-
-          userInfoOpt match {
-            case Some(u) =>
-              timer.startPeriodicTimer(CleanFeedKey, CleanFeed, cleanFeedTime)
-              ctx.self ! RefreshFeed(None, None, None)
-              ctx.self ! SwitchBehavior("idle", idle(
-                UserActorInfo(uid, u.userId, u.bbsId,u.headImg,
-                  follows._1.map(i => (i.origin, i.boardName)).toList,
-                  follows._2.map(_.followId).toList,
-                  follows._3.map(i => (i.origin, i.boardName, i.topicId)).toList,
-                  newFeed,
-                  newReplyFeed)))
-
-            case None =>
-              log.warn(s"${ctx.self.path} getUserById error when init,error:$uid is not exist")
-          }
-
-        }
         switchBehavior(ctx, "busy", busy(), Some(3.minutes), TimeOut("init"))
       }
     }
   }
 
-  def idle(user: UserActorInfo)(implicit stashBuffer: StashBuffer[Command], timer: TimerScheduler[Command]): Behavior[Command] = {
+  def idle(implicit stashBuffer: StashBuffer[Command], timer: TimerScheduler[Command]): Behavior[Command] = {
     Behaviors.immutable[Command] { (ctx, msg) =>
       msg match {
-        case UserLogout(_,replyTo)=>
-          replyTo ! "OK"
-          Behaviors.stopped
-
-        case UserFollowBoardMsg(_,boardName,origin)=>
- 
-          switchBehavior(ctx, "idle", idle(user.copy(favBoards = (origin, boardName) :: user.favBoards)))
-        case x =>
+        case x=>
           log.warn(s"unknown msg: $x")
           Behaviors.unhandled
       }
@@ -130,5 +80,4 @@ object UserActor {
     durationOpt.foreach(timer.startSingleTimer(BehaviorChangeKey, timeOut, _))
     stashBuffer.unstashAll(ctx, behavior)
   }
-
 }

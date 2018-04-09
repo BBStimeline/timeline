@@ -18,6 +18,7 @@ object UserProtocol {
                         pwd:String,
                         mail:String,
                         city:String,
+                        img:String,
                         gender:Int
                         )
 
@@ -26,7 +27,15 @@ object UserProtocol {
                          pwd:String
                          )
 
+  case class UserInfoDetail(
+                             uid:Long,
+                             userId: String,
+                             bbsId: String,
+                             face_url: String
+                           )
+
   case class UserLoginRsp(
+                           userInfo:Option[UserInfoDetail],
                            errCode: Int,
                            msg: String) extends CommonRsp
 }

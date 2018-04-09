@@ -22,20 +22,20 @@ import com.neo.sk.timeline.shared.ptcl._
   */
 object CommonCheck {
 
-  def checkSession:Unit={
-    Http.getAndParse[SuccessRsp](Routes.checkSession).map{
-      case Right(rsp) =>
-        if(rsp.errCode!=0){
-          println(s"checkSession error ")
-          JsFunc.alert(s"${rsp.msg}")
-          dom.window.location.hash = PageRoute.loginPage
-        }else{
-        }
-      case Left(e)=>
-        println(s"parse error in login $e ")
-        JsFunc.alert("验证出错")
-        dom.window.location.hash = PageRoute.loginPage
-    }
-  }
+//  def checkSession:Unit={
+//    Http.getAndParse[SuccessRsp](Routes.checkSession).map{
+//      case Right(rsp) =>
+//        if(rsp.errCode!=0){
+//          println(s"checkSession error ")
+//          JsFunc.alert(s"${rsp.msg}")
+//          dom.window.location.hash = PageRoute.loginPage
+//        }else{
+//        }
+//      case Left(e)=>
+//        println(s"parse error in login $e ")
+//        JsFunc.alert("验证出错")
+//        dom.window.location.hash = PageRoute.loginPage
+//    }
+//  }
 
 }

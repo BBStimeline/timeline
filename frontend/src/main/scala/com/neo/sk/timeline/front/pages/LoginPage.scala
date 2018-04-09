@@ -2,7 +2,7 @@ package com.neo.sk.timeline.front.pages
 
 import com.neo.sk.timeline.front.Index
 import com.neo.sk.timeline.front.common.{PageRoute, Routes}
-import com.neo.sk.timeline.front.utils.{Http, JsFunc}
+import com.neo.sk.timeline.front.utils.{Http, JsFunc, Shortcut}
 import com.neo.sk.timeline.shared.ptcl.UserProtocol.AdminConfirm
 import mhtml._
 import org.scalajs.dom
@@ -32,7 +32,7 @@ object LoginPage extends Index {
     val password=passwordtext.value
     if(!name.equals("") && !password.equals("")){
       val bodyStr =AdminConfirm(name,password).asJson.noSpaces
-      Http.postJsonAndParse[ErrorRsp](Routes.login,bodyStr).map{
+      Http.postJsonAndParse[ErrorRsp](Routes.UserRoutes.login,bodyStr).map{
         case Right(rsp) =>
           if(rsp.errCode!=0){
             println(s"name or password error in login ${rsp.errCode} ")
@@ -60,7 +60,7 @@ object LoginPage extends Index {
 
 
   val UserName:Var[Node] =Var(
-    <div class="pure-control-group" style="margin-top: 200px;">
+    <div class="pure-control-group" style="margin-top: 10%;">
       <label >账户：</label>
       <input type="text" id="username" placeholder="用户名" autofocus="true"></input>
     </div>
@@ -90,6 +90,11 @@ object LoginPage extends Index {
       {UserName}
       {PassWord}
       {LoginBtn}
+      <div style="margin-top:10px;width:100%;">
+        <button cls = "loginButton" marginTop = "10px" onclick={()=>Shortcut.redirect("#SignPage") } >
+          注册
+        </button>
+      </div>
     </div>
   }
 
