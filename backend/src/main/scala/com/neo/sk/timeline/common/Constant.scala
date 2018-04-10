@@ -20,5 +20,10 @@ object Constant {
     val BOARD = "board"
     val USER = "user"
     val TOPIC = "topic"
+
+    val BOARDINT = 0
+    val USERINT = 1
+    val TOPICINT = 2
   }
+
 }

@@ -90,7 +90,7 @@ object UserActor {
           Behaviors.stopped
 
         case UserFollowBoardMsg(_,boardName,origin)=>
- 
+          
           switchBehavior(ctx, "idle", idle(user.copy(favBoards = (origin, boardName) :: user.favBoards)))
         case x =>
           log.warn(s"unknown msg: $x")
