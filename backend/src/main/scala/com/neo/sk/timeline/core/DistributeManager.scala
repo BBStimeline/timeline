@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory
 import akka.actor.typed.{ActorRef, Behavior}
 
 import scala.collection.mutable
-import com.neo.sk.timeline.ptcl.DistributeProtocol.DisType
+import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisType, FeedListInfo}
 import com.neo.sk.timeline.ptcl.PostProtocol.PostEvent
 /**
   * User: sky
@@ -17,8 +17,9 @@ object DistributeManager {
 
   sealed trait Command
   final case class NotifyFollowObject(name:String,variety:Int,userId:Long,param:DisType) extends Command with DistributeActor.Command
-  final case class QuitFollowObject(name:String, variety:Int, userId:Long, param:DisType) extends Command with DistributeActor.Command
+  final case class QuitFollowObject(name:String, variety:Int, userId:Long) extends Command with DistributeActor.Command
   final case class RemoveFollowObject(name:String,variety:Int) extends Command with DistributeActor.Command
+  case class GetFeedList(feedType: Int, name: String, replyTo: ActorRef[FeedListInfo]) extends Command with DistributeActor.Command
   final case class DealTask(event:PostEvent)
 
   private val objectHash:mutable.HashMap[(String,Int),DisType]=mutable.HashMap() //(name,type)
@@ -30,15 +31,19 @@ object DistributeManager {
       msg match {
         case msg:NotifyFollowObject=>
           objectHash.put((msg.name,msg.variety),msg.param)
-          getDistributeActor(ctx,msg.name,msg.variety,msg.param) ! msg
+          getDistributeActor(ctx,msg.name,msg.variety,Some(msg.param)) ! msg
           Behaviors.same
 
         case msg:QuitFollowObject=>
-          getDistributeActor(ctx,msg.name,msg.variety,msg.param) ! msg
+          getDistributeActor(ctx,msg.name,msg.variety,None) ! msg
           Behaviors.same
 
         case msg:RemoveFollowObject=>
           objectHash.remove(msg.name,msg.variety)
+          Behaviors.same
+
+        case msg:GetFeedList=>
+          getDistributeActor(ctx,msg.name,msg.feedType,None) ! msg
           Behaviors.same
 
         case x=>
@@ -48,7 +53,7 @@ object DistributeManager {
     }
   }
 
-  private def getDistributeActor(ctx: ActorContext[Command], name:String, variety:Int,param:DisType) = {
+  private def getDistributeActor(ctx: ActorContext[Command], name:String, variety:Int,param:Option[DisType]) = {
     val childName = s"distributeActor--$variety--$name"
     ctx.child(childName).getOrElse {
       ctx.spawn(DistributeActor.init(name,variety,param), childName)

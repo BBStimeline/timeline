@@ -3,6 +3,7 @@ package com.neo.sk.timeline.core
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import org.slf4j.LoggerFactory
 import akka.actor.typed.{ActorRef, Behavior}
+import com.neo.sk.timeline.ptcl.UserProtocol.UserFeedReq
 import com.neo.sk.timeline.shared.ptcl.UserProtocol.UserLoginRsp
 /**
   * User: sky
@@ -24,7 +25,7 @@ object UserManager {
 //
 //  final case class UpdateUserFeed(uid: Long, post:PostBaseInfo, author:AuthorInfo, lastReplyTime: Long, feedType: String) extends Command
 //
-//  final case class GetUserFeed(uid: Long, sortType: Int, lastItemTime: Long, pageSize: Int, replyTo:ActorRef[Option[List[UserFeedReq]]]) extends Command
+  final case class GetUserFeed(uid: Long, sortType: Int, lastItemTime: Long, pageSize: Int, replyTo:ActorRef[Option[List[UserFeedReq]]]) extends Command
 //
 //  final case class UserFollowUserMsg(uid: Long, authorList: List[AuthorInfoWithType]) extends Command
 //
@@ -61,7 +62,10 @@ object UserManager {
         case UserFollowBoardMsg(uid,_,_)=>
           getUserActor(ctx,uid) ! msg
           Behaviors.same
-          
+
+        case msg:GetUserFeed=>
+          getUserActor(ctx,msg.uid) ! msg
+          Behaviors.same
         case x=>
           log.warn(s"unknown msg: $x")
           Behaviors.unhandled

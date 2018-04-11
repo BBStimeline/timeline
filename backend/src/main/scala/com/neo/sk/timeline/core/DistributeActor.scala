@@ -37,9 +37,10 @@ object DistributeActor {
   private val userBatch=50
   private val topicBatch=50
 
-  def init(name:String,variety:Int,param:DisType): Behavior[Command] = {
+  def init(name:String,variety:Int,paramOpt:Option[DisType]): Behavior[Command] = {
     Behaviors.setup[Command] { ctx =>
       implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
+      val param=paramOpt.get
       Behaviors.withTimers[Command] { implicit timer =>
         val futureEvent=if(variety==BOARD){
           val board=param.board.get

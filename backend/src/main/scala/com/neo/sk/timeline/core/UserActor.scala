@@ -3,13 +3,19 @@ package com.neo.sk.timeline.core
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
 import org.slf4j.LoggerFactory
 import akka.actor.typed.{ActorRef, Behavior}
+import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.models.dao.{FollowDAO, UserDAO}
 import com.neo.sk.timeline.ptcl.UserProtocol._
-
+import akka.actor.typed.scaladsl.AskPattern._
 import scala.concurrent.duration._
 import scala.collection.mutable
-import com.neo.sk.timeline.Boot.{executor, scheduler, timeout}
+import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
+import com.neo.sk.timeline.common.Constant.FeedType
 import com.neo.sk.timeline.core.UserManager.UserLogout
+import com.neo.sk.timeline.ptcl.DistributeProtocol.FeedListInfo
+
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 /**
   * User: sky
   * Date: 2018/4/8
@@ -84,7 +90,6 @@ object UserActor {
             case None =>
               log.warn(s"${ctx.self.path} getUserById error when init,error:$uid is not exist")
           }
-
         }
         switchBehavior(ctx, "busy", busy(), Some(3.minutes), TimeOut("init"))
       }
@@ -100,6 +105,73 @@ object UserActor {
 
         case UserFollowBoardMsg(_,boardName,origin)=>
           user.favBoards.add(origin, boardName)
+          Behaviors.same
+
+        case msg:GetUserFeed=>
+          msg.sortType match {
+            case 1 => //根据创建时间
+              if (user.newFeed.isEmpty || msg.lastItemTime > user.newFeed.map(_._2._1).max) {
+                ctx.self ! RefreshFeed(Some(msg.sortType), Some(msg.pageSize), Some(msg.replyTo))
+              } else {
+                msg.replyTo ! Some(user.newFeed.filter(_._2._1 < msg.lastItemTime).map(i => UserFeedReq(i._1._2, i._2._1)).toList.sortBy(_.time).reverse.take(msg.pageSize))
+              }
+            case 2 => //根据最新回复时间
+              if (user.newReplyFeed.isEmpty || msg.lastItemTime > user.newReplyFeed.map(_._2._1).max) {
+                ctx.self ! RefreshFeed(Some(msg.sortType), Some(msg.pageSize), Some(msg.replyTo))
+              } else {
+                msg.replyTo ! Some(user.newReplyFeed.filter(_._2._1 < msg.lastItemTime).map(i => UserFeedReq(i._1._2, i._2._1)).toList.sortBy(_.time).reverse.take(msg.pageSize))
+              }
+
+            case x@_ =>
+              log.debug(s"${ctx.self.path} GetFeed sortType error....sortType is $x")
+              msg.replyTo ! None
+          }
+          Behaviors.same
+
+        case msg:RefreshFeed=>
+          val targetList = user.favBoards.map(i => (FeedType.BOARD, i._1 + "-" + i._2)).toList ::: user.favUsers.map(i => (FeedType.USER, i._1 +"-"+i._2)).toList
+          Future.sequence{
+            targetList.map{ i =>
+              val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(i._1, i._2, _))
+              future.map { data =>
+                data.newPosts.foreach { event =>
+                  if (!user.newFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3))) {
+                    user.newFeed.add(((i._1, PostBaseInfo(event._1, event._2, event._3)),
+                      (event._4, event._5)))
+                }
+
+                data.newReplyPosts.foreach { event =>
+                  if(!user.newReplyFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3))) {
+                    user.newReplyFeed.add(((i._1, PostBaseInfo(event._1, event._2, event._3)),
+                      (event._4, event._5)))
+                  }
+                }
+              }
+              }
+            }}.onComplete{
+            case Success(_) =>
+              msg.sortType match {
+                case Some(sortType) =>
+                  if (sortType == 1)
+                    msg.replyTo.get ! Some(user.newFeed.map(i => UserFeedReq(i._1._2, i._2._1)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
+                  else
+                    msg.replyTo.get ! Some(user.newReplyFeed.map(i => UserFeedReq(i._1._2, i._2._1)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
+                case None => //
+              }
+            case Failure(_) =>
+              log.debug(s"${ctx.self.path} RefreshFeed fail.....")
+          }
+          Behaviors.same
+
+        case CleanFeed =>
+//          val newFeeds = user.newFeed.map { i =>
+//            SlickTables.rUserFeed(-1l, user.uid, i._1._2.origin, i._1._2.boardName, i._1._2.postId, i._2._1,
+//              0l, i._2._2.authorId, i._2._2.authorType, i._2._2.nickname, i._1._1)
+//          }.toList ::: user.newReplyFeed.map { i =>
+//            SlickTables.rUserFeed(-1l, user.uid, i._1._2.origin, i._1._2.boardName, i._1._2.postId, 0l,
+//              i._2._1, i._2._2.authorId, i._2._2.authorType, i._2._2.nickname, i._1._1)
+//          }.toList
+//          UserDAO.cleanFeed(user.uid, newFeeds)
           Behaviors.same
 
         case x =>

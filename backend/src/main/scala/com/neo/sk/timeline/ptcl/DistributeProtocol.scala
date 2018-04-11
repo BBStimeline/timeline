@@ -1,5 +1,7 @@
 package com.neo.sk.timeline.ptcl
 
+import com.neo.sk.timeline.ptcl.UserProtocol.AuthorInfo
+
 import scala.collection.mutable
 /**
   * User: sky
@@ -21,4 +23,9 @@ object DistributeProtocol {
                      name:String,
                      variety:Int
                      )
+
+  case class FeedListInfo(
+                           newPosts: List[(Int, String, Long, Long, AuthorInfo)],  //origin, boardName, topicId, time
+                           newReplyPosts: List[(Int, String, Long, Long, AuthorInfo)]
+                         )
 }
