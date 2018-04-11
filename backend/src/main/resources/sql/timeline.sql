@@ -49,8 +49,7 @@ CREATE TABLE posts (
   title         VARCHAR(127) NOT NULL, --帖子标题
   author_id     BIGINT  NOT NULL, --作者id
   author_name   VARCHAR(31)  NOT NULL, --作者name--bbsId or unionId
-  content_html  TEXT         NOT NULL, --帖子html内容
-  content_text  TEXT         NOT NULL, --帖子文本内容
+  content  TEXT         NOT NULL, --帖子文本内容
   imgs          TEXT         NOT NULL, --帖子图片url，以;分隔
   hestia_imgs   TEXT         NOT NULL, --帖子图片url，以;分隔
   post_time     BIGINT       NOT NULL, --发帖时间
@@ -79,10 +78,9 @@ CREATE TABLE public.user_feed (
   post_id    BIGINT NOT NULL  DEFAULT 0,
   post_time  BIGINT NOT NULL  DEFAULT 0,
   last_reply_time BIGINT NOT NULL  DEFAULT 0,
-  author_id    VARCHAR(100) DEFAULT ''  NOT NULL,
-  author_type  INT DEFAULT 0 NOT NULL,
-  author_name  VARCHAR(100),
-  feed_type    VARCHAR(100) DEFAULT ''  NOT NULL
+  author_id    BIGINT NOT NULL DEFAULT 0,
+  author_name  VARCHAR(100) NOT NULL,
+  feed_type    INT DEFAULT 0 NOT NULL
 );
 CREATE INDEX user_feed_user_id_idx ON user_feed(user_id);
 

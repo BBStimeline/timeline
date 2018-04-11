@@ -47,31 +47,40 @@ object UserActor {
           feed <- UserDAO.getUserFeed(uid)
           follows <- FollowDAO.getFollows(uid)
         } yield {
-          val newFeed = new mutable.Queue[((String, PostBaseInfo), (Long, AuthorInfo))]()
-          val newReplyFeed = new mutable.Queue[((String, PostBaseInfo), (Long, AuthorInfo))]()
+          val favBoard = new mutable.HashSet[(Int, String)]()
+          val favUser = new mutable.HashSet[(Int,Long)]()
+          val favTopic = new mutable.HashSet[(Int, String, Long)]()
+          val newFeed = new mutable.HashSet[((Int, PostBaseInfo), (Long, AuthorInfo))]()
+          val newReplyFeed = new mutable.HashSet[((Int, PostBaseInfo), (Long, AuthorInfo))]()
 
           if (feed.nonEmpty) {
             feed.filter(_.postTime != 0).sortBy(_.postTime).reverse.take(maxFeedLength).foreach { f =>
-              newFeed.enqueue(((f.feedType, PostBaseInfo(f.origin, f.boardname, f.postId)), (f.postTime, AuthorInfo(f.authorId, f.authorName, f.authorType))))
+              newFeed.add(((f.feedType, PostBaseInfo(f.origin, f.boardname, f.postId)), (f.postTime, AuthorInfo(f.authorId, f.authorName, f.origin))))
             }
-
             feed.filter(_.lastReplyTime != 0).sortBy(_.lastReplyTime).reverse.take(maxFeedLength).foreach { f =>
-              newReplyFeed.enqueue(((f.feedType, PostBaseInfo(f.origin, f.boardname, f.postId)), (f.lastReplyTime, AuthorInfo(f.authorId, f.authorName, f.authorType))))
+              newReplyFeed.add(((f.feedType, PostBaseInfo(f.origin, f.boardname, f.postId)), (f.lastReplyTime, AuthorInfo(f.authorId, f.authorName, f.origin))))
             }
           }
-
+          follows._1.map(r=>
+            favBoard.add(r.origin,r.boardName)
+          )
+          follows._2.map(r=>
+            favUser.add(r.origin,r.followId)
+          )
+          follows._3.map(r=>
+            favTopic.add(r.origin,r.boardName,r.topicId)
+          )
           userInfoOpt match {
             case Some(u) =>
               timer.startPeriodicTimer(CleanFeedKey, CleanFeed, cleanFeedTime)
               ctx.self ! RefreshFeed(None, None, None)
               ctx.self ! SwitchBehavior("idle", idle(
                 UserActorInfo(uid, u.userId, u.bbsId,u.headImg,
-                  follows._1.map(i => (i.origin, i.boardName)).toList,
-                  follows._2.map(_.followId).toList,
-                  follows._3.map(i => (i.origin, i.boardName, i.topicId)).toList,
+                  favBoard,
+                  favUser,
+                  favTopic,
                   newFeed,
                   newReplyFeed)))
-
             case None =>
               log.warn(s"${ctx.self.path} getUserById error when init,error:$uid is not exist")
           }
@@ -90,8 +99,9 @@ object UserActor {
           Behaviors.stopped
 
         case UserFollowBoardMsg(_,boardName,origin)=>
-          
-          switchBehavior(ctx, "idle", idle(user.copy(favBoards = (origin, boardName) :: user.favBoards)))
+          user.favBoards.add(origin, boardName)
+          Behaviors.same
+
         case x =>
           log.warn(s"unknown msg: $x")
           Behaviors.unhandled
