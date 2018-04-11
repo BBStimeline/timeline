@@ -17,6 +17,8 @@ object DistributeProtocol {
 
   case class DisCache(
                      postList:mutable.HashSet[(Int,String,Long)],
-                     followList:mutable.HashSet[Long]=mutable.HashSet()
+                     followList:mutable.HashSet[Long]=mutable.HashSet(),
+                     name:String,
+                     variety:Int
                      )
 }

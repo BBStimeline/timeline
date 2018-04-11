@@ -17,13 +17,9 @@ object Constant {
   }
 
   object FeedType{
-    val BOARD = "board"
-    val USER = "user"
-    val TOPIC = "topic"
-
-    val BOARDINT = 0
-    val USERINT = 1
-    val TOPICINT = 2
+    val BOARD = 0
+    val USER = 1
+    val TOPIC = 2
   }
 
 }

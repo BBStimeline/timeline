@@ -8,7 +8,7 @@ import com.neo.sk.timeline.ptcl.UserProtocol._
 
 import scala.concurrent.duration._
 import scala.collection.mutable
-import com.neo.sk.timeline.Boot.{executor, scheduler, timeout}
+import com.neo.sk.timeline.Boot.{executor, scheduler, timeout,distributeManager}
 import com.neo.sk.timeline.core.UserManager.UserLogout
 import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisCache, DisType}
 import com.neo.sk.timeline.common.Constant.FeedType._
@@ -23,6 +23,7 @@ object DistributeActor {
   import com.neo.sk.timeline.core.DistributeManager._
   trait Command
   case class TimeOut(msg: String) extends Command
+  case object CheckObjectTimeOut extends Command
   final case class SwitchBehavior(
                                    name: String,
                                    behavior: Behavior[Command],
@@ -30,21 +31,21 @@ object DistributeActor {
                                    timeOut: TimeOut = TimeOut("busy time error")
                                  ) extends Command
   private final case object BehaviorChangeKey
-
+  private final case object CheckObjectKey
   /**配置文件中参数*/
   private val boardBatch=500
   private val userBatch=50
   private val topicBatch=50
 
-  def init(variety:Int,param:DisType): Behavior[Command] = {
+  def init(name:String,variety:Int,param:DisType): Behavior[Command] = {
     Behaviors.setup[Command] { ctx =>
       implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
       Behaviors.withTimers[Command] { implicit timer =>
-        val futureEvent=if(variety==BOARDINT){
+        val futureEvent=if(variety==BOARD){
           val board=param.board.get
           val origin=param.origin
           PostDAO.getLastPostByBoard(board,origin,boardBatch)
-        }else if(variety==USERINT){
+        }else if(variety==USER){
           val userId=param.userId.get
           val userName=param.userName.get
           val origin=param.origin
@@ -60,8 +61,9 @@ object DistributeActor {
           posts.map(p=>
             postList.add((p.origin,p.boardName,p.topicId))
           )
-          ctx.self ! SwitchBehavior("idle", idle(DisCache(postList)))
+          ctx.self ! SwitchBehavior("idle", idle(DisCache(postList = postList,name =name ,variety= variety)))
         }
+        timer.startPeriodicTimer(CheckObjectKey,CheckObjectTimeOut,5.minutes)
         switchBehavior(ctx, "busy", busy(), Some(3.minutes), TimeOut("init"))
       }
     }
@@ -73,6 +75,18 @@ object DistributeActor {
         case msg:NotifyFollowObject=>
           disCache.followList.add(msg.userId)
           Behaviors.same
+
+        case msg:QuitFollowObject=>
+          disCache.followList.remove(msg.userId)
+          Behaviors.same
+
+        case CheckObjectTimeOut=>
+          if(disCache.followList.size==0){
+            distributeManager ! RemoveFollowObject(disCache.name,disCache.variety)
+            Behaviors.stopped
+          }else{
+            Behaviors.same
+          }
 
         case x=>
           log.warn(s"unknown msg: $x")

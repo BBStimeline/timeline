@@ -14,17 +14,17 @@ object UserProtocol {
                             userId: String,
                             bbsId: String,
                             headImg: String,
-                            favBoards: List[(Int, String)],
-                            favUsers: List[Long],
-                            favTopic: List[(Int, String, Long)],
-                            newFeed: mutable.Queue[((String, PostBaseInfo), (Long, AuthorInfo))] = mutable.Queue(),
-                            newReplyFeed: mutable.Queue[((String, PostBaseInfo), (Long, AuthorInfo))] = mutable.Queue()
+                            favBoards: mutable.HashSet[(Int, String)]=mutable.HashSet(),
+                            favUsers:mutable.HashSet[(Int,Long)]=mutable.HashSet(),
+                            favTopic: mutable.HashSet[(Int, String, Long)]=mutable.HashSet(),
+                            newFeed: mutable.HashSet[((Int, PostBaseInfo), (Long, AuthorInfo))] = mutable.HashSet(),
+                            newReplyFeed: mutable.HashSet[((Int, PostBaseInfo), (Long, AuthorInfo))] = mutable.HashSet()
                           )
 
   case class AuthorInfo(
-                         authorId:String,
-                         nickname:Option[String],
-                         authorType:Int // 0：水木本身发帖用户 ,1水木plus用户
+                         authorId:Long,
+                         authorName:String,
+                         origin:Int // 0：水木本身发帖用户 ,1水木plus用户
                        )
 
   case class PostBaseInfo(

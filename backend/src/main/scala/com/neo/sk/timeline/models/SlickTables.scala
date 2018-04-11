@@ -92,8 +92,7 @@ trait SlickTables {
    *  @param title Database column title SqlType(varchar), Length(127,true)
    *  @param authorId Database column author_id SqlType(int8)
    *  @param authorName Database column author_name SqlType(varchar), Length(31,true)
-   *  @param contentHtml Database column content_html SqlType(text)
-   *  @param contentText Database column content_text SqlType(text)
+   *  @param content Database column content SqlType(text)
    *  @param imgs Database column imgs SqlType(text)
    *  @param hestiaImgs Database column hestia_imgs SqlType(text)
    *  @param postTime Database column post_time SqlType(int8)
@@ -103,17 +102,17 @@ trait SlickTables {
    *  @param quoteId Database column quote_id SqlType(int8), Default(None)
    *  @param updateTime Database column update_time SqlType(int8)
    *  @param state Database column state SqlType(int4), Default(0) */
-  final case class rPosts(id: Long, origin: Int, topicId: Long, postId: Long, isMain: Boolean, title: String, authorId: Long, authorName: String, contentHtml: String, contentText: String, imgs: String, hestiaImgs: String, postTime: Long, boardName: String, url: String, boardNameCn: String, quoteId: Option[Long] = None, updateTime: Long, state: Int = 0)
+  final case class rPosts(id: Long, origin: Int, topicId: Long, postId: Long, isMain: Boolean, title: String, authorId: Long, authorName: String, content: String, imgs: String, hestiaImgs: String, postTime: Long, boardName: String, url: String, boardNameCn: String, quoteId: Option[Long] = None, updateTime: Long, state: Int = 0)
   /** GetResult implicit for fetching rPosts objects using plain SQL queries */
   implicit def GetResultrPosts(implicit e0: GR[Long], e1: GR[Int], e2: GR[Boolean], e3: GR[String], e4: GR[Option[Long]]): GR[rPosts] = GR{
     prs => import prs._
-    rPosts.tupled((<<[Long], <<[Int], <<[Long], <<[Long], <<[Boolean], <<[String], <<[Long], <<[String], <<[String], <<[String], <<[String], <<[String], <<[Long], <<[String], <<[String], <<[String], <<?[Long], <<[Long], <<[Int]))
+    rPosts.tupled((<<[Long], <<[Int], <<[Long], <<[Long], <<[Boolean], <<[String], <<[Long], <<[String], <<[String], <<[String], <<[String], <<[Long], <<[String], <<[String], <<[String], <<?[Long], <<[Long], <<[Int]))
   }
   /** Table description of table posts. Objects of this class serve as prototypes for rows in queries. */
   class tPosts(_tableTag: Tag) extends profile.api.Table[rPosts](_tableTag, "posts") {
-    def * = (id, origin, topicId, postId, isMain, title, authorId, authorName, contentHtml, contentText, imgs, hestiaImgs, postTime, boardName, url, boardNameCn, quoteId, updateTime, state) <> (rPosts.tupled, rPosts.unapply)
+    def * = (id, origin, topicId, postId, isMain, title, authorId, authorName, content, imgs, hestiaImgs, postTime, boardName, url, boardNameCn, quoteId, updateTime, state) <> (rPosts.tupled, rPosts.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(origin), Rep.Some(topicId), Rep.Some(postId), Rep.Some(isMain), Rep.Some(title), Rep.Some(authorId), Rep.Some(authorName), Rep.Some(contentHtml), Rep.Some(contentText), Rep.Some(imgs), Rep.Some(hestiaImgs), Rep.Some(postTime), Rep.Some(boardName), Rep.Some(url), Rep.Some(boardNameCn), quoteId, Rep.Some(updateTime), Rep.Some(state)).shaped.<>({r=>import r._; _1.map(_=> rPosts.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get, _11.get, _12.get, _13.get, _14.get, _15.get, _16.get, _17, _18.get, _19.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(origin), Rep.Some(topicId), Rep.Some(postId), Rep.Some(isMain), Rep.Some(title), Rep.Some(authorId), Rep.Some(authorName), Rep.Some(content), Rep.Some(imgs), Rep.Some(hestiaImgs), Rep.Some(postTime), Rep.Some(boardName), Rep.Some(url), Rep.Some(boardNameCn), quoteId, Rep.Some(updateTime), Rep.Some(state)).shaped.<>({r=>import r._; _1.map(_=> rPosts.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get, _11.get, _12.get, _13.get, _14.get, _15.get, _16, _17.get, _18.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(bigserial), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -131,10 +130,8 @@ trait SlickTables {
     val authorId: Rep[Long] = column[Long]("author_id")
     /** Database column author_name SqlType(varchar), Length(31,true) */
     val authorName: Rep[String] = column[String]("author_name", O.Length(31,varying=true))
-    /** Database column content_html SqlType(text) */
-    val contentHtml: Rep[String] = column[String]("content_html")
-    /** Database column content_text SqlType(text) */
-    val contentText: Rep[String] = column[String]("content_text")
+    /** Database column content SqlType(text) */
+    val content: Rep[String] = column[String]("content")
     /** Database column imgs SqlType(text) */
     val imgs: Rep[String] = column[String]("imgs")
     /** Database column hestia_imgs SqlType(text) */
@@ -224,21 +221,20 @@ trait SlickTables {
    *  @param postId Database column post_id SqlType(int8), Default(0)
    *  @param postTime Database column post_time SqlType(int8), Default(0)
    *  @param lastReplyTime Database column last_reply_time SqlType(int8), Default(0)
-   *  @param authorId Database column author_id SqlType(varchar), Length(100,true), Default()
-   *  @param authorType Database column author_type SqlType(int4), Default(0)
-   *  @param authorName Database column author_name SqlType(varchar), Length(100,true), Default(None)
-   *  @param feedType Database column feed_type SqlType(varchar), Length(100,true), Default() */
-  final case class rUserFeed(id: Long, userId: Long = 0L, origin: Int = 0, boardname: String = "", postId: Long = 0L, postTime: Long = 0L, lastReplyTime: Long = 0L, authorId: String = "", authorType: Int = 0, authorName: Option[String] = None, feedType: String = "")
+   *  @param authorId Database column author_id SqlType(int8), Default(0)
+   *  @param authorName Database column author_name SqlType(varchar), Length(100,true)
+   *  @param feedType Database column feed_type SqlType(int4), Default(0) */
+  final case class rUserFeed(id: Long, userId: Long = 0L, origin: Int = 0, boardname: String = "", postId: Long = 0L, postTime: Long = 0L, lastReplyTime: Long = 0L, authorId: Long = 0L, authorName: String, feedType: Int = 0)
   /** GetResult implicit for fetching rUserFeed objects using plain SQL queries */
-  implicit def GetResultrUserFeed(implicit e0: GR[Long], e1: GR[Int], e2: GR[String], e3: GR[Option[String]]): GR[rUserFeed] = GR{
+  implicit def GetResultrUserFeed(implicit e0: GR[Long], e1: GR[Int], e2: GR[String]): GR[rUserFeed] = GR{
     prs => import prs._
-    rUserFeed.tupled((<<[Long], <<[Long], <<[Int], <<[String], <<[Long], <<[Long], <<[Long], <<[String], <<[Int], <<?[String], <<[String]))
+    rUserFeed.tupled((<<[Long], <<[Long], <<[Int], <<[String], <<[Long], <<[Long], <<[Long], <<[Long], <<[String], <<[Int]))
   }
   /** Table description of table user_feed. Objects of this class serve as prototypes for rows in queries. */
   class tUserFeed(_tableTag: Tag) extends profile.api.Table[rUserFeed](_tableTag, "user_feed") {
-    def * = (id, userId, origin, boardname, postId, postTime, lastReplyTime, authorId, authorType, authorName, feedType) <> (rUserFeed.tupled, rUserFeed.unapply)
+    def * = (id, userId, origin, boardname, postId, postTime, lastReplyTime, authorId, authorName, feedType) <> (rUserFeed.tupled, rUserFeed.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(userId), Rep.Some(origin), Rep.Some(boardname), Rep.Some(postId), Rep.Some(postTime), Rep.Some(lastReplyTime), Rep.Some(authorId), Rep.Some(authorType), authorName, Rep.Some(feedType)).shaped.<>({r=>import r._; _1.map(_=> rUserFeed.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10, _11.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(userId), Rep.Some(origin), Rep.Some(boardname), Rep.Some(postId), Rep.Some(postTime), Rep.Some(lastReplyTime), Rep.Some(authorId), Rep.Some(authorName), Rep.Some(feedType)).shaped.<>({r=>import r._; _1.map(_=> rUserFeed.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(bigserial), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -254,14 +250,12 @@ trait SlickTables {
     val postTime: Rep[Long] = column[Long]("post_time", O.Default(0L))
     /** Database column last_reply_time SqlType(int8), Default(0) */
     val lastReplyTime: Rep[Long] = column[Long]("last_reply_time", O.Default(0L))
-    /** Database column author_id SqlType(varchar), Length(100,true), Default() */
-    val authorId: Rep[String] = column[String]("author_id", O.Length(100,varying=true), O.Default(""))
-    /** Database column author_type SqlType(int4), Default(0) */
-    val authorType: Rep[Int] = column[Int]("author_type", O.Default(0))
-    /** Database column author_name SqlType(varchar), Length(100,true), Default(None) */
-    val authorName: Rep[Option[String]] = column[Option[String]]("author_name", O.Length(100,varying=true), O.Default(None))
-    /** Database column feed_type SqlType(varchar), Length(100,true), Default() */
-    val feedType: Rep[String] = column[String]("feed_type", O.Length(100,varying=true), O.Default(""))
+    /** Database column author_id SqlType(int8), Default(0) */
+    val authorId: Rep[Long] = column[Long]("author_id", O.Default(0L))
+    /** Database column author_name SqlType(varchar), Length(100,true) */
+    val authorName: Rep[String] = column[String]("author_name", O.Length(100,varying=true))
+    /** Database column feed_type SqlType(int4), Default(0) */
+    val feedType: Rep[Int] = column[Int]("feed_type", O.Default(0))
   }
   /** Collection-like TableQuery object for table tUserFeed */
   lazy val tUserFeed = new TableQuery(tag => new tUserFeed(tag))
