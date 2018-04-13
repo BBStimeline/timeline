@@ -69,12 +69,13 @@ CREATE index boardName_topicId_index on posts(origin,board_name,topic_id);
 CREATE index boardName_isMain_postTime on posts(origin,board_name,is_main,post_time desc);
 CREATE index boardName_postTime on posts(origin,board_name,post_time desc);
 
----- 用户feed流
+--userFeed流
 CREATE TABLE public.user_feed (
   id         SERIAL8 PRIMARY KEY NOT NULL,
   user_id    BIGINT DEFAULT 0  NOT NULL,
   origin     INT NOT NULL DEFAULT 0,
   boardName  VARCHAR(100) DEFAULT ''  NOT NULL,
+  topic_id   BIGINT NOT NULL DEFAULT 0,
   post_id    BIGINT NOT NULL  DEFAULT 0,
   post_time  BIGINT NOT NULL  DEFAULT 0,
   last_reply_time BIGINT NOT NULL  DEFAULT 0,
@@ -83,6 +84,22 @@ CREATE TABLE public.user_feed (
   feed_type    INT DEFAULT 0 NOT NULL
 );
 CREATE INDEX user_feed_user_id_idx ON user_feed(user_id);
+
+--回复时间排序表
+CREATE TABLE post_sort_reply_time(
+  origin        INT NOT NULL DEFAULT 0,--板块源
+  board_name     VARCHAR(50)            NOT NULL,
+  topic_id      BIGINT       NOT NULL,
+  post_id       BIGINT       NOT NULL,
+  post_time     BIGINT       NOT NULL ,
+  author_id    BIGINT NOT NULL DEFAULT 0,
+  author_name  VARCHAR(100) NOT NULL, --水木id或者unionid
+  reply_time    BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (origin,board_name,topic_id)
+);
+CREATE index boardName_isMain_replyTime_replyIndex ON post_sort_reply_time(origin,board_name,reply_time desc);
+CREATE index isMain_replyTime_replyIndex ON post_sort_reply_time(reply_time desc);
+CREATE index replyTime_replyIndex ON post_sort_reply_time(reply_time desc);
 
 --用户关注用户
 CREATE TABLE public.user_follow_user(

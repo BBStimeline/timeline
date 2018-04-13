@@ -3,15 +3,17 @@ package com.neo.sk.timeline.core
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
 import org.slf4j.LoggerFactory
 import akka.actor.typed.{ActorRef, Behavior}
-import com.neo.sk.timeline.models.dao.{FollowDAO, PostDAO, UserDAO}
+import com.neo.sk.timeline.models.dao.{FollowDAO, PostDAO, PostSortDAO}
 import com.neo.sk.timeline.ptcl.UserProtocol._
 
 import scala.concurrent.duration._
 import scala.collection.mutable
-import com.neo.sk.timeline.Boot.{executor, scheduler, timeout,distributeManager}
+import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
 import com.neo.sk.timeline.core.UserManager.UserLogout
-import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisCache, DisType}
+import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisCache, DisType, FeedListInfo}
 import com.neo.sk.timeline.common.Constant.FeedType._
+
+import scala.concurrent.Future
 /**
   * User: sky
   * Date: 2018/4/9
@@ -35,34 +37,59 @@ object DistributeActor {
   /**配置文件中参数*/
   private val boardBatch=500
   private val userBatch=50
-  private val topicBatch=50
 
   def init(name:String,variety:Int,paramOpt:Option[DisType]): Behavior[Command] = {
     Behaviors.setup[Command] { ctx =>
       implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
       val param=paramOpt.get
       Behaviors.withTimers[Command] { implicit timer =>
-        val futureEvent=if(variety==BOARD){
+        val newPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long)]=mutable.HashMap()
+        val newReplyPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long)]=mutable.HashMap()
+        if(variety==BOARD){
           val board=param.board.get
           val origin=param.origin
-          PostDAO.getLastPostByBoard(board,origin,boardBatch)
+          for{
+            postList<-PostSortDAO.getPostListByPostTime(board,origin,boardBatch)
+            replyPostList<-PostSortDAO.getPostListByReplyTime(board,origin,boardBatch)
+          }yield {
+            postList.map(p=>
+              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime))
+            )
+            replyPostList.map(p=>
+              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postId,p.replyTime))
+            )
+            ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
+          }
         }else if(variety==USER){
           val userId=param.userId.get
           val userName=param.userName.get
           val origin=param.origin
-          PostDAO.getLastPostByUser(userId,userName,origin,userBatch)
+          for{
+            posts <- PostDAO.getLastTopicByUser(userId,userName,origin,userBatch)
+            tps <- {
+              val topics=posts.groupBy(r=>(r.origin,r.boardName,r.topicId))
+              PostDAO.getUserByPostId(topics.map(_._1).toSeq)
+            }
+          }yield {
+            val topics=posts.groupBy(r=>(r.origin,r.boardName,r.topicId))
+            topics.map { t =>
+              val lastPost=t._2.map(_.postId).max
+              val lastPostTime=t._2.map(_.postTime).max
+              newPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,lastPostTime))
+              newReplyPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,lastPostTime))
+            }
+            ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
+          }
         }else{
           val board=param.board.get
           val topicId=param.topicId.get
           val origin=param.origin
-          PostDAO.getLastPostByTopic(board,origin,topicId,topicBatch)
-        }
-        futureEvent.map{posts=>
-          val postList:mutable.HashSet[(Int,String,Long)]=mutable.HashSet()
-          posts.map(p=>
-            postList.add((p.origin,p.boardName,p.topicId))
-          )
-          ctx.self ! SwitchBehavior("idle", idle(DisCache(postList = postList,name =name ,variety= variety)))
+          PostSortDAO.getPostById(origin,board,topicId).map{
+            case Some(p)=>
+              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime))
+              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postTime,p.replyTime))
+              ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
+          }
         }
         timer.startPeriodicTimer(CheckObjectKey,CheckObjectTimeOut,5.minutes)
         switchBehavior(ctx, "busy", busy(), Some(3.minutes), TimeOut("init"))
@@ -88,6 +115,12 @@ object DistributeActor {
           }else{
             Behaviors.same
           }
+
+        case msg:GetFeedList=>
+          val newPost=disCache.newPost.toList.sortBy(_._1._4).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2))
+          val newReplyPost=disCache.newReplyPost.toList.sortBy(_._2._1).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2))
+          msg.replyTo ! FeedListInfo(newPost,newReplyPost)
+          Behaviors.same
 
         case x=>
           log.warn(s"unknown msg: $x")

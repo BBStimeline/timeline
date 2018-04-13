@@ -17,8 +17,8 @@ object UserProtocol {
                             favBoards: mutable.HashSet[(Int, String)]=mutable.HashSet(),
                             favUsers:mutable.HashSet[(Int,Long)]=mutable.HashSet(),
                             favTopic: mutable.HashSet[(Int, String, Long)]=mutable.HashSet(),
-                            newFeed: mutable.HashSet[((Int, PostBaseInfo), (Long, AuthorInfo))] = mutable.HashSet(),
-                            newReplyFeed: mutable.HashSet[((Int, PostBaseInfo), (Long, AuthorInfo))] = mutable.HashSet()
+                            newFeed: mutable.HashMap[(Int, PostBaseInfo), (Long,Long)] = mutable.HashMap(),//(postId,replyPostTime)
+                            newReplyFeed: mutable.HashMap[(Int, PostBaseInfo), (Long,Long)] = mutable.HashMap()
                           )
 
   case class AuthorInfo(
@@ -30,7 +30,8 @@ object UserProtocol {
   case class PostBaseInfo(
                            origin:Int,
                            boardName:String,
-                           postId:Long
+                           topicId:Long,
+                           postTime:Long
                          )
 
   case class UserFeedReq(

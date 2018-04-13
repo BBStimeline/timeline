@@ -56,15 +56,15 @@ object UserActor {
           val favBoard = new mutable.HashSet[(Int, String)]()
           val favUser = new mutable.HashSet[(Int,Long)]()
           val favTopic = new mutable.HashSet[(Int, String, Long)]()
-          val newFeed = new mutable.HashSet[((Int, PostBaseInfo), (Long, AuthorInfo))]()
-          val newReplyFeed = new mutable.HashSet[((Int, PostBaseInfo), (Long, AuthorInfo))]()
+          val newFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long)]()
+          val newReplyFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long)]()
 
           if (feed.nonEmpty) {
             feed.filter(_.postTime != 0).sortBy(_.postTime).reverse.take(maxFeedLength).foreach { f =>
-              newFeed.add(((f.feedType, PostBaseInfo(f.origin, f.boardname, f.postId)), (f.postTime, AuthorInfo(f.authorId, f.authorName, f.origin))))
+              newFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname, f.topicId,f.postTime)), (f.postId,f.lastReplyTime))
             }
             feed.filter(_.lastReplyTime != 0).sortBy(_.lastReplyTime).reverse.take(maxFeedLength).foreach { f =>
-              newReplyFeed.add(((f.feedType, PostBaseInfo(f.origin, f.boardname, f.postId)), (f.lastReplyTime, AuthorInfo(f.authorId, f.authorName, f.origin))))
+              newReplyFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname,f.topicId, f.postTime)), (f.postId,f.lastReplyTime))
             }
           }
           follows._1.map(r=>
@@ -129,21 +129,20 @@ object UserActor {
           Behaviors.same
 
         case msg:RefreshFeed=>
-          val targetList = user.favBoards.map(i => (FeedType.BOARD, i._1 + "-" + i._2)).toList ::: user.favUsers.map(i => (FeedType.USER, i._1 +"-"+i._2)).toList
+          val targetList = user.favBoards.map(i => (FeedType.BOARD, i._1 + "-" + i._2)).toList ::: user.favUsers.map(i => (FeedType.USER, i._1 +"-"+i._2)).toList:::user.favTopic.map(i=>(FeedType.TOPIC,i._1+"-"+i._2+"-"+i._3)).toList
           Future.sequence{
             targetList.map{ i =>
               val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(i._1, i._2, _))
               future.map { data =>
                 data.newPosts.foreach { event =>
-                  if (!user.newFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3))) {
-                    user.newFeed.add(((i._1, PostBaseInfo(event._1, event._2, event._3)),
-                      (event._4, event._5)))
+                  if (!user.newFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
+                    user.newFeed.put((i._1, PostBaseInfo(event._1, event._2, event._3, event._4)),
+                      (event._5, event._6))
                 }
-
                 data.newReplyPosts.foreach { event =>
-                  if(!user.newReplyFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3))) {
-                    user.newReplyFeed.add(((i._1, PostBaseInfo(event._1, event._2, event._3)),
-                      (event._4, event._5)))
+                  if(!user.newReplyFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
+                    user.newReplyFeed.put((i._1, PostBaseInfo(event._1, event._2, event._3,event._4)),
+                      (event._5, event._6))
                   }
                 }
               }

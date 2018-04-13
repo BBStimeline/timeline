@@ -23,16 +23,19 @@ object PostDAO {
     db.run(tPosts.returning(tPosts.map(_.id))+=line)
   }
 
-  def getLastPostByBoard(board:String,origin:Int,num:Int)={
-    db.run(tPosts.filter(r=>r.boardName===board&&r.origin===origin).sortBy(_.postTime desc).take(num).result)
-  }
-
-  def getLastPostByTopic(board:String,origin:Int,topicId:Long,num:Int)={
-    db.run(tPosts.filter(r=>r.boardName===board&&r.topicId===topicId&&r.origin===origin).sortBy(_.postTime desc).take(num).result)
-  }
-
-  def getLastPostByUser(userId:Long,userName:String,origin:Int,num:Int)={
+  def getLastTopicByUser(userId:Long, userName:String, origin:Int, num:Int)={
     db.run(tPosts.filter(r=>r.authorId===userId&&r.origin===origin).sortBy(_.postTime desc).take(num).result)
   }
+
+  def getUserByPostId(topics:Seq[(Int,String,Long)])={
+    val query=tPosts.filter{p=>
+      val a=topics.map{t=>
+        p.origin===t._1&&p.boardName===t._2&&p.topicId===t._3
+      }
+      a.reduceLeft(_||_)
+    }.map(r=>(r.topicId,r.postId))
+    db.run(query.result)
+  }
+
 
 }

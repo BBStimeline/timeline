@@ -18,14 +18,15 @@ object DistributeProtocol {
                     )
 
   case class DisCache(
-                     postList:mutable.HashSet[(Int,String,Long)],
-                     followList:mutable.HashSet[Long]=mutable.HashSet(),
-                     name:String,
-                     variety:Int
+                       newPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long)]=mutable.HashMap(),
+                       newReplyPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long)]=mutable.HashMap(),
+                       followList:mutable.HashSet[Long]=mutable.HashSet(),
+                       name:String,
+                       variety:Int
                      )
 
   case class FeedListInfo(
-                           newPosts: List[(Int, String, Long, Long, AuthorInfo)],  //origin, boardName, topicId, time
-                           newReplyPosts: List[(Int, String, Long, Long, AuthorInfo)]
+                           newPosts: List[(Int, String, Long, Long, Long,Long)],  //origin, boardName, topicId,postTime, postId, replyPostTime
+                           newReplyPosts: List[(Int, String, Long, Long ,Long,Long)]
                          )
 }
