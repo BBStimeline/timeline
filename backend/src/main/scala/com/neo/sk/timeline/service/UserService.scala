@@ -1,7 +1,6 @@
 package com.neo.sk.timeline.service
 
 import akka.http.scaladsl.server.Directives._
-import akka.util.Timeout
 import com.neo.sk.timeline.core.UserManager._
 
 import scala.concurrent.Future
@@ -13,6 +12,7 @@ import io.circe.Error
 import io.circe.generic.auto._
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.http.scaladsl.server.Route
+import akka.util.Timeout
 import com.neo.sk.timeline.common.AppSettings
 import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.models.dao.UserDAO
@@ -20,7 +20,8 @@ import com.neo.sk.timeline.service.ServiceUtils.CommonRsp
 import com.neo.sk.timeline.service.SessionBase.UserSessionKey
 import com.neo.sk.timeline.shared.ptcl.UserProtocol._
 import com.neo.sk.timeline.utils.SecureUtil
-import com.neo.sk.timeline.Boot.executor
+import com.neo.sk.timeline.Boot.{executor, timeout, userManager, scheduler}
+import com.neo.sk.timeline.core.UserManager
 
 import scala.concurrent.duration._
 
@@ -62,6 +63,7 @@ trait UserService extends ServiceUtils with SessionBase{
                       UserDAO.updateSession(t,sessionKey).map{u=>
                         if(u>0){
                           setSession(session){ ctx =>
+                            userManager ! UserManager.UserLogin(t)
                             ctx.complete(UserSignRsp(Some(userDetail),0, "Ok"))
                           }
                         }else{
@@ -102,9 +104,10 @@ trait UserService extends ServiceUtils with SessionBase{
               val headImg=if(r.get.headImg=="") AppSettings.defaultHeadImg else r.get.headImg
               val userDetail=UserInfoDetail(r.get.id,r.get.userId,r.get.bbsId,headImg)
               dealFutureResult(
-                UserDAO.updateSession(r.get.id,sessionKey).map{r=>
-                  if(r>0){
+                UserDAO.updateSession(r.get.id,sessionKey).map{u=>
+                  if(u>0){
                     setSession(session){ ctx =>
+                      userManager ! UserManager.UserLogin(r.get.id)
                       ctx.complete(UserLoginRsp(Some(userDetail),0,"OK"))
                     }
                   }else{
@@ -123,9 +126,21 @@ trait UserService extends ServiceUtils with SessionBase{
   private val userLogout=(path("logout") & get & pathEndOrSingleSlash){
     UserAction{user=>
       val ses=Set(UserSessionKey.userId,UserSessionKey.uid)
-      removeSession(ses){ctx =>
-        log.info(s"user-----${user.userId}----logout")
-        ctx.complete(CommonRsp(0,"OK"))
+      dealFutureResult {
+        val future: Future[String] = userManager ? (UserLogout(user.uid,_))
+        future.map {
+          case "ok" =>
+            removeSession(ses){ctx =>
+              log.info(s"user-----${user.userId}----logout")
+              ctx.complete(CommonRsp(0,"OK"))
+            }
+          case x@_ =>
+            complete(ErrorRsp(120004, x))
+        }.recover {
+          case e: Exception =>
+            log.info(s"user logout exception.." + e.getMessage)
+            complete(ErrorRsp(120003, "网络异常,请稍后再试!"))
+        }
       }
     }
   }

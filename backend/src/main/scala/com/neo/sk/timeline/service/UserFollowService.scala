@@ -15,7 +15,8 @@ import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.models.dao.{FollowDAO, UserDAO}
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol._
 import com.neo.sk.timeline.utils.SecureUtil
-import com.neo.sk.timeline.Boot.{executor, userManager}
+import com.neo.sk.timeline.Boot.{executor, userManager, distributeManager}
+import com.neo.sk.timeline.ptcl.UserProtocol.PostBaseInfo
 
 import scala.concurrent.duration._
 
@@ -59,50 +60,130 @@ trait UserFollowService extends ServiceUtils with SessionBase{
     }
   }
 
-//  private val addFollowUser = (path("addFollowUser") & post & pathEndOrSingleSlash) {
-//    entity(as[Either[Error, AddFollowUserReq]]) {
-//      case Right(req) =>
-//        UserAction{ u =>
-//          dealFutureResult {
-//            FollowDAO.isUserFollow(u.uid, req.userId,req.origin).map{ exists =>
-//              if(exists){
-//                complete(ErrorRsp(130016, "已经关注过了"))
-//              } else {
-//                dealFutureResult {
-//                  val future: Future[BaseUserInfo] = serviceActor ? (GetUserAccount(req.bbsId, _))
-//                  future.map { data =>
-//                    if (data.plusUserInfo.nonEmpty && data.bbsInfo.nonEmpty) {
-//                      dealFutureResult {
-//                        val bbsUser = data.bbsInfo.get
-//                        FollowDAO.addFollowUser(SlickTables.rUserFollowUser(-1l, u.uid, req.bbsId, bbsUser.bbsName, bbsUser.faceUrl,
-//                          System.currentTimeMillis(), 0, data.plusUserInfo.get.uid)).map { _ =>
-//                          distributeManager ! DistributeManager.AddFollowedUser(data.plusUserInfo.get.uid, req.bbsId)
-//                          userManager ! UserFollowUserMsg(u.uid,
-//                            List(AuthorInfoWithType(data.plusUserInfo.get.uid.toString, UserType.SMTHPLUS), AuthorInfoWithType(u.bbsId, UserType.SMTH)))
-//                          complete(AddFollowUserRsp(data.plusUserInfo.get.uid))
-//                        }.recover {
-//                          case e: Exception =>
-//                            log.info(s"user${u.uid} add follow user exception.." + e.getMessage)
-//                            complete(ErrorRsp(130008, "add follow user error."))
-//                        }
-//                      }
-//                    } else {
-//                      complete(ErrorRsp(130008, "add follow user error."))
-//                    }
-//                  }
-//                }
-//              }
-//            }
-//          }
-//
-//        }
-//      case Left(e) =>
-//        complete(ErrorRsp(130009, "parse error."))
-//    }
-//  }
+  private val addFollowTopic = (path("addFollowTopic") & post & pathEndOrSingleSlash) {
+    entity(as[Either[Error, AddFollowTopicReq]]) {
+      case Right(req) =>
+        UserAction{ u =>
+          dealFutureResult {
+            FollowDAO.checkFollowTopic(u.uid, req.origin, req.boardName, req.topicId).map {
+              e =>
+                if(e) {
+                  log.info(s"user${u.uid} add follow topic exception: topic has been followed")
+                  complete(ErrorRsp(130006, "已经关注过了"))
+                }
+                else {
+                  dealFutureResult {
+                    FollowDAO.addFollowTopic(SlickTables.rUserFollowTopic(-1l, u.uid, req.boardName, req.topicId,System.currentTimeMillis(), 0, req.origin)).map { r =>
+                      userManager ! UserFollowTopicMsg(u.uid, PostBaseInfo(req.origin, req.boardName, req.topicId,req.time))
+                      complete(SuccessRsp())
+                    }.recover {
+                      case e: Exception =>
+                        log.info(s"user${u.uid} add follow topic exception.." + e.getMessage)
+                        complete(ErrorRsp(130006, "add follow topic error."))
+                    }
+                  }
+                }
+            }
+          }
+        }
+      case Left(e) =>
+        complete(ErrorRsp(130007, "parse error."))
+    }
+  }
+
+  private val addFollowUser = (path("addFollowUser") & post & pathEndOrSingleSlash) {
+    entity(as[Either[Error, AddFollowUserReq]]) {
+      case Right(req) =>
+        UserAction{ u =>
+          dealFutureResult {
+            FollowDAO.isUserFollow(u.uid, req.userId,req.origin).map{ exists =>
+              if(exists){
+                complete(ErrorRsp(130016, "已经关注过了"))
+              } else {
+                dealFutureResult {
+                  FollowDAO.addFollowUser(SlickTables.rUserFollowUser(-1l, u.uid, req.userId, req.userName,
+                    System.currentTimeMillis(), req.origin,0)).map { _ =>
+                    userManager ! UserFollowUserMsg(u.uid,req.userId,req.userName,req.origin)
+                    complete(SuccessRsp())
+                  }.recover {
+                    case e: Exception =>
+                      log.info(s"user${u.uid} add follow user exception.." + e.getMessage)
+                      complete(ErrorRsp(130008, "add follow user error."))
+                  }
+                }
+              }
+            }
+          }
+        }
+      case Left(e) =>
+        complete(ErrorRsp(130009, "parse error."))
+    }
+  }
+
+  private val unFollowBoard = (path("unFollowBoard") & post & pathEndOrSingleSlash) {
+    entity(as[Either[Error, UnFollowBoardReq]]) {
+      case Right(req) =>
+        UserAction{ u =>
+          dealFutureResult {
+            FollowDAO.unFollowBoard(u.uid, req.origin, req.boardName).map { r =>
+              userManager ! UserUnFollowBoardMsg(u.uid, req.boardName, req.origin)
+              complete(SuccessRsp())
+            }.recover {
+              case e: Exception =>
+                log.info(s"user${u.uid} unFollowBoard exception.." + e.getMessage)
+                complete(ErrorRsp(130015, "unFollowBoard error."))
+            }
+          }
+        }
+
+      case Left(e) =>
+        complete(ErrorRsp(130014, "parse error."))
+    }
+  }
+
+  private val unFollowTopic = (path("unFollowTopic") & post & pathEndOrSingleSlash) {
+    entity(as[Either[Error, UnFollowTopicReq]]) {
+      case Right(req) =>
+        UserAction{ u =>
+          dealFutureResult {
+            FollowDAO.unFollowTopic(u.uid, req.origin, req.boardName, req.topicId).map { r =>
+              userManager ! UserUnFollowTopicMsg(u.uid, PostBaseInfo(req.origin, req.boardName, req.topicId,0l))
+              complete(SuccessRsp())
+            }.recover {
+              case e: Exception =>
+                log.info(s"user${u.uid} unFollowTopic exception.." + e.getMessage)
+                complete(ErrorRsp(130016, "unFollowTopic error."))
+            }
+          }
+        }
+
+      case Left(e) =>
+        complete(ErrorRsp(130017, "parse error."))
+    }
+  }
+
+  private val unFollowUser = (path("unFollowUser") & post & pathEndOrSingleSlash) {
+    entity(as[Either[Error, UnFollowUser]]) {
+      case Right(req) =>
+        UserAction{ u =>
+          dealFutureResult {
+            FollowDAO.unFollowUser(u.uid, req.userId).map { r =>
+              userManager ! UserUnFollowUserMsg(u.uid,req.userId,req.userName,req.origin)
+              complete(SuccessRsp())
+            }.recover {
+              case e: Exception =>
+                log.info(s"user${u.uid} unFollowUser exception.." + e.getMessage)
+                complete(ErrorRsp(130018, "unFollowUser error."))
+            }
+          }
+        }
+      case Left(e) =>
+        complete(ErrorRsp(130019, "parse error."))
+    }
+  }
 
   val followRoutes: Route =
     pathPrefix("follow") {
-      addFollowBoard /*~ addFollowUser*/
+      addFollowBoard ~ addFollowTopic ~ addFollowUser ~ unFollowBoard ~ unFollowTopic ~ unFollowUser
     }
 }

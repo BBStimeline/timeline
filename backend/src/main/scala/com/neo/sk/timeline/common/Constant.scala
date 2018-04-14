@@ -22,4 +22,7 @@ object Constant {
     val TOPIC = 2
   }
 
+  object SortType{
+  }
+
 }
