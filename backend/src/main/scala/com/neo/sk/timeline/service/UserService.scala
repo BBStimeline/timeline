@@ -18,9 +18,10 @@ import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.models.dao.UserDAO
 import com.neo.sk.timeline.service.ServiceUtils.CommonRsp
 import com.neo.sk.timeline.service.SessionBase.UserSessionKey
-import com.neo.sk.timeline.shared.ptcl.UserProtocol.{UserInfoDetail, UserLoginReq, UserLoginRsp, UserSignReq}
+import com.neo.sk.timeline.shared.ptcl.UserProtocol._
 import com.neo.sk.timeline.utils.SecureUtil
-import com.neo.sk.timeline.Boot.{executor}
+import com.neo.sk.timeline.Boot.executor
+
 import scala.concurrent.duration._
 
 /**
@@ -44,12 +45,35 @@ trait UserService extends ServiceUtils with SessionBase{
             if(r.isEmpty){
               val sha1Pwd=SecureUtil.getSecurePassword(req.userId,req.pwd)
               dealFutureResult(
-                UserDAO.addUser(req.userId,now,"",req.img,req.city,req.gender,sha1Pwd).map(t=>
-                  if(t>0l) complete(CommonRsp(0,"Ok")) else complete(ErrorRsp(10001,"注册失败"))
-                )
+                UserDAO.addUser(req.userId,now,"",req.img,req.city,req.gender,sha1Pwd).map { t =>
+                  if (t > 0l){
+                    val (sessionKey,keyCode,signature)=SecureUtil.appSafety
+                    val session = Map(
+                      UserSessionKey.uid -> t.toString,
+                      UserSessionKey.userId -> req.userId,
+                      UserSessionKey.bbsId -> "guest",
+                      UserSessionKey.loginTime -> System.currentTimeMillis().toString,
+                      UserSessionKey.keyCode -> keyCode,
+                      UserSessionKey.signature -> signature
+                    )
+                    val headImg=if(r.get.headImg=="") AppSettings.defaultHeadImg else r.get.headImg
+                    val userDetail=UserInfoDetail(r.get.id,r.get.userId,r.get.bbsId,headImg)
+                    dealFutureResult(
+                      UserDAO.updateSession(t,sessionKey).map{u=>
+                        if(u>0){
+                          setSession(session){ ctx =>
+                            ctx.complete(UserSignRsp(Some(userDetail),0, "Ok"))
+                          }
+                        }else{
+                          complete(ErrorRsp(10001,"更新用户签名失败"))
+                        }
+                      }
+                    )
+                  }  else complete(ErrorRsp(10001, "注册失败"))
+                }
               )
             }else{
-              complete(10002,"本昵称已被使用")
+              complete(ErrorRsp(10002,"本昵称已被使用"))
             }
           )
         )

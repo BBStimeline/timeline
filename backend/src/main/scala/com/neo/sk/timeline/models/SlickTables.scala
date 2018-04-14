@@ -260,18 +260,20 @@ trait SlickTables {
    *  @param postId Database column post_id SqlType(int8), Default(0)
    *  @param postTime Database column post_time SqlType(int8), Default(0)
    *  @param lastReplyTime Database column last_reply_time SqlType(int8), Default(0)
-   *  @param feedType Database column feed_type SqlType(int4), Default(0) */
-  final case class rUserFeed(id: Long, userId: Long = 0L, origin: Int = 0, boardname: String = "", topicId: Long = 0L, postId: Long = 0L, postTime: Long = 0L, lastReplyTime: Long = 0L, feedType: Int = 0)
+   *  @param feedType Database column feed_type SqlType(int4), Default(0)
+   *  @param authorId Database column author_id SqlType(int8), Default(None)
+   *  @param authorName Database column author_name SqlType(varchar), Length(100,true), Default(None) */
+  final case class rUserFeed(id: Long, userId: Long = 0L, origin: Int = 0, boardname: String = "", topicId: Long = 0L, postId: Long = 0L, postTime: Long = 0L, lastReplyTime: Long = 0L, feedType: Int = 0, authorId: Option[Long] = None, authorName: Option[String] = None)
   /** GetResult implicit for fetching rUserFeed objects using plain SQL queries */
-  implicit def GetResultrUserFeed(implicit e0: GR[Long], e1: GR[Int], e2: GR[String]): GR[rUserFeed] = GR{
+  implicit def GetResultrUserFeed(implicit e0: GR[Long], e1: GR[Int], e2: GR[String], e3: GR[Option[Long]], e4: GR[Option[String]]): GR[rUserFeed] = GR{
     prs => import prs._
-    rUserFeed.tupled((<<[Long], <<[Long], <<[Int], <<[String], <<[Long], <<[Long], <<[Long], <<[Long], <<[Int]))
+    rUserFeed.tupled((<<[Long], <<[Long], <<[Int], <<[String], <<[Long], <<[Long], <<[Long], <<[Long], <<[Int], <<?[Long], <<?[String]))
   }
   /** Table description of table user_feed. Objects of this class serve as prototypes for rows in queries. */
   class tUserFeed(_tableTag: Tag) extends profile.api.Table[rUserFeed](_tableTag, "user_feed") {
-    def * = (id, userId, origin, boardname, topicId, postId, postTime, lastReplyTime, feedType) <> (rUserFeed.tupled, rUserFeed.unapply)
+    def * = (id, userId, origin, boardname, topicId, postId, postTime, lastReplyTime, feedType, authorId, authorName) <> (rUserFeed.tupled, rUserFeed.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(userId), Rep.Some(origin), Rep.Some(boardname), Rep.Some(topicId), Rep.Some(postId), Rep.Some(postTime), Rep.Some(lastReplyTime), Rep.Some(feedType)).shaped.<>({r=>import r._; _1.map(_=> rUserFeed.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(userId), Rep.Some(origin), Rep.Some(boardname), Rep.Some(topicId), Rep.Some(postId), Rep.Some(postTime), Rep.Some(lastReplyTime), Rep.Some(feedType), authorId, authorName).shaped.<>({r=>import r._; _1.map(_=> rUserFeed.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10, _11)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(bigserial), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -291,6 +293,10 @@ trait SlickTables {
     val lastReplyTime: Rep[Long] = column[Long]("last_reply_time", O.Default(0L))
     /** Database column feed_type SqlType(int4), Default(0) */
     val feedType: Rep[Int] = column[Int]("feed_type", O.Default(0))
+    /** Database column author_id SqlType(int8), Default(None) */
+    val authorId: Rep[Option[Long]] = column[Option[Long]]("author_id", O.Default(None))
+    /** Database column author_name SqlType(varchar), Length(100,true), Default(None) */
+    val authorName: Rep[Option[String]] = column[Option[String]]("author_name", O.Length(100,varying=true), O.Default(None))
   }
   /** Collection-like TableQuery object for table tUserFeed */
   lazy val tUserFeed = new TableQuery(tag => new tUserFeed(tag))
