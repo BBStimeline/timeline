@@ -8,11 +8,6 @@ import com.neo.sk.timeline.shared.ptcl.CommonRsp
   */
 object UserProtocol {
 
-  case class AdminConfirm(
-                           adminName:String,
-                           passWord:String
-                         )
-
   case class UserSignReq(
                         userId:String,
                         pwd:String,
@@ -28,11 +23,17 @@ object UserProtocol {
                          )
 
   case class UserInfoDetail(
-                             uid:Long,
-                             userId: String,
-                             bbsId: String,
-                             face_url: String
+                             uid:Long=0l,
+                             userId: String="",
+                             bbsId: String="",
+                             face_url: String=""
                            )
+
+  case class UserSignRsp(
+                          userInfo:Option[UserInfoDetail],
+                          errCode: Int,
+                          msg: String
+                        ) extends CommonRsp
 
   case class UserLoginRsp(
                            userInfo:Option[UserInfoDetail],

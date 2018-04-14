@@ -43,8 +43,8 @@ object DistributeActor {
       implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
       val param=paramOpt.get
       Behaviors.withTimers[Command] { implicit timer =>
-        val newPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long)]=mutable.HashMap()
-        val newReplyPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long)]=mutable.HashMap()
+        val newPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long,Option[AuthorInfo])]=mutable.HashMap()
+        val newReplyPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long,Option[AuthorInfo])]=mutable.HashMap()
         if(variety==BOARD){
           val board=param.board.get
           val origin=param.origin
@@ -53,10 +53,10 @@ object DistributeActor {
             replyPostList<-PostSortDAO.getPostListByReplyTime(board,origin,boardBatch)
           }yield {
             postList.map(p=>
-              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime))
+              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime,None))
             )
             replyPostList.map(p=>
-              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postId,p.replyTime))
+              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postId,p.replyTime,None))
             )
             ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
@@ -75,8 +75,8 @@ object DistributeActor {
             topics.map { t =>
               val lastPost=t._2.map(_.postId).max
               val lastPostTime=t._2.map(_.postTime).max
-              newPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,lastPostTime))
-              newReplyPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,lastPostTime))
+              newPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,lastPostTime,Some(AuthorInfo(userId,userName,origin))))
+              newReplyPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,lastPostTime,Some(AuthorInfo(userId,userName,origin))))
             }
             ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
@@ -86,8 +86,8 @@ object DistributeActor {
           val origin=param.origin
           PostSortDAO.getPostById(origin,board,topicId).map{
             case Some(p)=>
-              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime))
-              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postTime,p.replyTime))
+              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime,None))
+              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postTime,p.replyTime,None))
               ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
         }
@@ -117,8 +117,8 @@ object DistributeActor {
           }
 
         case msg:GetFeedList=>
-          val newPost=disCache.newPost.toList.sortBy(_._1._4).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2))
-          val newReplyPost=disCache.newReplyPost.toList.sortBy(_._2._1).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2))
+          val newPost=disCache.newPost.toList.sortBy(_._1._4).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2,r._2._3))
+          val newReplyPost=disCache.newReplyPost.toList.sortBy(_._2._1).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2,r._2._3))
           msg.replyTo ! FeedListInfo(newPost,newReplyPost)
           Behaviors.same
 

@@ -2,7 +2,7 @@
 package com.neo.sk.timeline.front
 
 //import com.neo.sk.timeline.front.pages._
-import com.neo.sk.timeline.front.pages.{LoginPage, MainPage, SignPage}
+import com.neo.sk.timeline.front.pages.{LoginPage, MainPage}
 import mhtml._
 import org.scalajs.dom
 import org.scalajs.dom.raw.Event
@@ -22,7 +22,6 @@ trait Index {
 object Main {
   private val indexPage = Seq[Index](
     LoginPage,
-    SignPage,
     MainPage
   )
 

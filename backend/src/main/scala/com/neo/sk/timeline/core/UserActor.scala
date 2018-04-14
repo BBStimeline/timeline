@@ -56,15 +56,15 @@ object UserActor {
           val favBoard = new mutable.HashSet[(Int, String)]()
           val favUser = new mutable.HashSet[(Int,Long)]()
           val favTopic = new mutable.HashSet[(Int, String, Long)]()
-          val newFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long)]()
-          val newReplyFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long)]()
+          val newFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long,Option[AuthorInfo])]()
+          val newReplyFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long,Option[AuthorInfo])]()
 
           if (feed.nonEmpty) {
             feed.filter(_.postTime != 0).sortBy(_.postTime).reverse.take(maxFeedLength).foreach { f =>
-              newFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname, f.topicId,f.postTime)), (f.postId,f.lastReplyTime))
+              newFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname, f.topicId,f.postTime)), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(0l),f.authorName.getOrElse(""),f.origin))))
             }
             feed.filter(_.lastReplyTime != 0).sortBy(_.lastReplyTime).reverse.take(maxFeedLength).foreach { f =>
-              newReplyFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname,f.topicId, f.postTime)), (f.postId,f.lastReplyTime))
+              newReplyFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname,f.topicId, f.postTime)), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(0l),f.authorName.getOrElse(""),f.origin))))
             }
           }
           follows._1.map(r=>
@@ -137,12 +137,12 @@ object UserActor {
                 data.newPosts.foreach { event =>
                   if (!user.newFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
                     user.newFeed.put((i._1, PostBaseInfo(event._1, event._2, event._3, event._4)),
-                      (event._5, event._6))
+                      (event._5, event._6, event._7))
                 }
                 data.newReplyPosts.foreach { event =>
                   if(!user.newReplyFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
                     user.newReplyFeed.put((i._1, PostBaseInfo(event._1, event._2, event._3,event._4)),
-                      (event._5, event._6))
+                      (event._5, event._6, event._7))
                   }
                 }
               }
