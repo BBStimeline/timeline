@@ -13,7 +13,7 @@ object UserFollowProtocol {
                               )
 
   case class AddFollowTopicReq(
-                                origin: String,
+                                origin: Int,
                                 boardName: String,
                                 topicId: Long,
                                 title: String,
@@ -23,7 +23,25 @@ object UserFollowProtocol {
                               )
 
   case class AddFollowUserReq(
-                               userId:String,
+                               userId:Long,
+                               userName:String,
                                origin:Int
                              )
+
+  case class UnFollowBoardReq(
+                               origin: Int, //数据来源，smth:水木社区，smthPlus：水木plus自有版面
+                               boardName: String,
+                             )
+
+  case class UnFollowTopicReq(
+                               origin:Int,
+                               boardName: String,
+                               topicId: Long
+                             )
+
+  case class UnFollowUser(
+                         origin:Int,
+                         userId: Long,
+                         userName:String
+                         )
 }

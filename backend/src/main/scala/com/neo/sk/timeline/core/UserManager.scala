@@ -3,7 +3,7 @@ package com.neo.sk.timeline.core
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import org.slf4j.LoggerFactory
 import akka.actor.typed.{ActorRef, Behavior}
-import com.neo.sk.timeline.ptcl.UserProtocol.UserFeedReq
+import com.neo.sk.timeline.ptcl.UserProtocol.{PostBaseInfo, UserFeedReq}
 import com.neo.sk.timeline.shared.ptcl.UserProtocol.UserLoginRsp
 /**
   * User: sky
@@ -15,6 +15,7 @@ object UserManager {
 
   sealed trait Command extends UserActor.Command
 
+  final case class UserLogin(uid:Long) extends Command
   final case class UserLogout(uid: Long, replyTo:ActorRef[String]) extends Command
 //
 //  final case class PostArt(uid: Long, boardName: String, subject: String, content: String, replyTo:ActorRef[String]) extends Command
@@ -26,18 +27,12 @@ object UserManager {
 //  final case class UpdateUserFeed(uid: Long, post:PostBaseInfo, author:AuthorInfo, lastReplyTime: Long, feedType: String) extends Command
 //
   final case class GetUserFeed(uid: Long, sortType: Int, lastItemTime: Long, pageSize: Int, replyTo:ActorRef[Option[List[UserFeedReq]]]) extends Command
-//
-//  final case class UserFollowUserMsg(uid: Long, authorList: List[AuthorInfoWithType]) extends Command
-//
+  final case class UserFollowUserMsg(uid: Long, followId:Long,followName:String,origin:Int) extends Command
   final case class UserFollowBoardMsg(uid: Long, boardName: String, origin:Int) extends Command
-//
-//  final case class UserFollowTopicMsg(uid: Long, post:PostBaseInfo, author:AuthorInfo, postTime: Long) extends Command
-//
-//  final case class UserUnFollowUserMsg(uid: Long, authorList: List[AuthorInfoWithType]) extends Command
-//
-//  final case class UserUnFollowBoardMsg(uid: Long, boardName: String, origin: String) extends Command
-//
-//  final case class UserUnFollowTopicMsg(uid: Long, post:PostBaseInfo) extends Command
+  final case class UserFollowTopicMsg(uid: Long, post:PostBaseInfo) extends Command
+  final case class UserUnFollowUserMsg(uid: Long, followId:Long,followName:String,origin:Int) extends Command
+  final case class UserUnFollowBoardMsg(uid: Long, boardName: String, origin: Int) extends Command
+  final case class UserUnFollowTopicMsg(uid: Long, post:PostBaseInfo) extends Command
 //
 //  final case class DeleteArt(uid: Long, boardName: String, postId: Long, replyTo:ActorRef[String]) extends Command
 //
@@ -55,12 +50,36 @@ object UserManager {
   def idle(): Behavior[Command] = {
     Behaviors.immutable[Command] { (ctx, msg) =>
       msg match {
+        case UserLogin(uid)=>
+          getUserActor(ctx,uid)
+          Behaviors.same
+
         case UserLogout(uid,_)=>
           getUserActor(ctx,uid) ! msg
           Behaviors.same
 
         case UserFollowBoardMsg(uid,_,_)=>
           getUserActor(ctx,uid) ! msg
+          Behaviors.same
+
+        case msg:UserFollowTopicMsg=>
+          getUserActor(ctx,msg.uid) ! msg
+          Behaviors.same
+
+        case msg:UserFollowUserMsg=>
+          getUserActor(ctx,msg.uid) ! msg
+          Behaviors.same
+
+        case msg:UserUnFollowBoardMsg=>
+          getUserActor(ctx,msg.uid) ! msg
+          Behaviors.same
+
+        case msg:UserUnFollowTopicMsg=>
+          getUserActor(ctx,msg.uid) ! msg
+          Behaviors.same
+
+        case msg:UserUnFollowUserMsg=>
+          getUserActor(ctx,msg.uid) ! msg
           Behaviors.same
 
         case msg:GetUserFeed=>
