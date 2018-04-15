@@ -1,5 +1,7 @@
 package com.neo.sk.timeline.shared.ptcl
 
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
+
 /**
   * User: sky
   * Date: 2018/4/9
@@ -44,4 +46,15 @@ object UserFollowProtocol {
                          userId: Long,
                          userName:String
                          )
+
+  case class UserFeedRsp(
+                          normalPost: List[FeedPost],
+                          errCode: Int = 0,
+                          msg: String = "ok"
+                        )
+
+  case class FeedPost(
+                       post: Post,
+                       time: Long
+                     )
 }

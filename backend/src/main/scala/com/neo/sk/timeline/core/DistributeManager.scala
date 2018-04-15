@@ -20,6 +20,7 @@ object DistributeManager {
   final case class QuitFollowObject(name:String, variety:Int, userId:Long) extends Command with DistributeActor.Command
   final case class RemoveFollowObject(name:String,variety:Int) extends Command with DistributeActor.Command
   case class GetFeedList(feedType: Int, name: String, replyTo: ActorRef[FeedListInfo]) extends Command with DistributeActor.Command
+  final case class ChildDead(name:String,variety:Int,childRef:ActorRef[DistributeActor.Command]) extends Command
   final case class DealTask(event:PostEvent)
 
   private val objectHash:mutable.HashMap[(String,Int),DisType]=mutable.HashMap() //(name,type)
@@ -46,6 +47,10 @@ object DistributeManager {
           getDistributeActor(ctx,msg.name,msg.feedType,None) ! msg
           Behaviors.same
 
+        case msg:ChildDead=>
+          objectHash.remove(msg.name,msg.variety)
+          Behaviors.same
+
         case x=>
           log.warn(s"unknown msg: $x")
           Behaviors.unhandled
@@ -56,7 +61,9 @@ object DistributeManager {
   private def getDistributeActor(ctx: ActorContext[Command], name:String, variety:Int,param:Option[DisType]) = {
     val childName = s"distributeActor--$variety--$name"
     ctx.child(childName).getOrElse {
-      ctx.spawn(DistributeActor.init(name,variety,param), childName)
+      val actor=ctx.spawn(DistributeActor.init(name,variety,param), childName)
+      ctx.watchWith(actor,ChildDead(childName,variety,actor))
+      actor
     }.upcast[DistributeActor.Command]
   }
 }

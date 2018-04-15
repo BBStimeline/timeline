@@ -35,7 +35,9 @@ object UserProtocol {
                          )
 
   case class UserFeedReq(
-                          post: PostBaseInfo,
-                          time: Long
+                          origin:Int,
+                          board:String,
+                          topicId:Long,
+                          postId:Long
                         )
 }

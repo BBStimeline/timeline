@@ -110,7 +110,6 @@ object DistributeActor {
 
         case CheckObjectTimeOut=>
           if(disCache.followList.size==0){
-            distributeManager ! RemoveFollowObject(disCache.name,disCache.variety)
             Behaviors.stopped
           }else{
             Behaviors.same
