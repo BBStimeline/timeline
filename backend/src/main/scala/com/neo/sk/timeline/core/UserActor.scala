@@ -214,13 +214,13 @@ object UserActor {
               if (user.newFeed.isEmpty || msg.lastItemTime > user.newFeed.map(_._2._1).max) {
                 ctx.self ! RefreshFeed(Some(msg.sortType), Some(msg.pageSize), Some(msg.replyTo))
               } else {
-                msg.replyTo ! Some(user.newFeed.filter(_._2._1 < msg.lastItemTime).map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1)).toList.sortBy(_.time).reverse.take(msg.pageSize))
+                msg.replyTo ! Some(user.newFeed.filter(_._2._1 < msg.lastItemTime).map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1,i._1._2.postTime)).toList.sortBy(_.time).reverse.take(msg.pageSize))
               }
             case 2 => //根据最新回复时间
               if (user.newReplyFeed.isEmpty || msg.lastItemTime > user.newReplyFeed.map(_._2._1).max) {
                 ctx.self ! RefreshFeed(Some(msg.sortType), Some(msg.pageSize), Some(msg.replyTo))
               } else {
-                msg.replyTo ! Some(user.newReplyFeed.filter(_._2._1 < msg.lastItemTime).map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1)).toList.sortBy(_.time).reverse.take(msg.pageSize))
+                msg.replyTo ! Some(user.newReplyFeed.filter(_._2._1 < msg.lastItemTime).map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize))
               }
 
             case x@_ =>
@@ -253,9 +253,9 @@ object UserActor {
               msg.sortType match {
                 case Some(sortType) =>
                   if (sortType == 1)
-                    msg.replyTo.get ! Some(user.newFeed.map(i => UserFeedReq(i._1._2, i._2._1)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
+                    msg.replyTo.get ! Some(user.newFeed.map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1,i._1._2.postTime)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
                   else
-                    msg.replyTo.get ! Some(user.newReplyFeed.map(i => UserFeedReq(i._1._2, i._2._1)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
+                    msg.replyTo.get ! Some(user.newReplyFeed.map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
                 case None => //
               }
             case Failure(_) =>

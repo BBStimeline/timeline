@@ -4,7 +4,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerSch
 import org.slf4j.LoggerFactory
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.{ActorRef, Behavior}
-import com.neo.sk.timeline.Boot.{executor, timeout}
+import com.neo.sk.timeline.Boot.{executor, timeout, scheduler}
 import com.neo.sk.timeline.ptcl.UserProtocol.UserFeedReq
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, UserFeedRsp}
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post

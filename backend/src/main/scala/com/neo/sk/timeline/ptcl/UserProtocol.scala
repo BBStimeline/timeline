@@ -38,6 +38,7 @@ object UserProtocol {
                           origin:Int,
                           board:String,
                           topicId:Long,
-                          postId:Long
+                          postId:Long,
+                          time:Long
                         )
 }
