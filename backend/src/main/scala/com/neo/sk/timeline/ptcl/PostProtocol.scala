@@ -42,4 +42,6 @@ object PostProtocol {
                          hestiaImgs:String,
                          boardNameCn:String
                        )
+
+  case class
 }
