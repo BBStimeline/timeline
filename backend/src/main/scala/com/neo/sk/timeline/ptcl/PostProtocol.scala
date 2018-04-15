@@ -43,5 +43,4 @@ object PostProtocol {
                          boardNameCn:String
                        )
 
-  case class
 }

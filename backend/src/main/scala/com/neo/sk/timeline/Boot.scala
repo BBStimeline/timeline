@@ -7,7 +7,7 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import akka.actor.typed.scaladsl.adapter._
-import com.neo.sk.timeline.core.{DistributeManager, UserManager}
+import com.neo.sk.timeline.core.{BoardManager, DistributeManager, UserManager}
 import com.neo.sk.timeline.service.HttpService
 
 import scala.language.postfixOps
@@ -40,6 +40,8 @@ object Boot extends HttpService {
   val userManager = system.spawn(UserManager.behavior, "userManager")
   
   val distributeManager = system.spawn(DistributeManager.behavior, "distributeManager")
+
+  val boardManager = system.spawn(BoardManager.behavior,"boardManager")
 
   def main(args: Array[String]) {
     log.info("Starting.")

@@ -145,33 +145,33 @@ trait UserService extends ServiceUtils with SessionBase{
     }
   }
 
-  private val getFeedFlow = (path("getFeedFlow") & get & pathEndOrSingleSlash) {
-    UserAction{ u =>
-      parameters(
-        'sortType.as[Int],
-        'lastItemTime.as[Long],
-        'pageSize.as[Int]
-      ) { case (sortType, lastItemTime, pageSize) =>
-        dealFutureResult {
-          val future: Future[Option[List[UserFeedReq]]] = userManager ? (GetUserFeed(u.uid, sortType, lastItemTime, pageSize, _))
-          future.map {
-            case Some(feeds) =>
-              dealFutureResult {
-
-              }
-
-            case None =>
-              complete(ErrorRsp(120007, "sortType error...."))
-
-          }.recover {
-            case e: Exception =>
-              log.info(s"postArt exception.." + e.getMessage)
-              complete(ErrorRsp(120003, "网络异常,请稍后再试!"))
-          }
-        }
-      }
-    }
-  }
+//  private val getFeedFlow = (path("getFeedFlow") & get & pathEndOrSingleSlash) {
+//    UserAction{ u =>
+//      parameters(
+//        'sortType.as[Int],
+//        'lastItemTime.as[Long],
+//        'pageSize.as[Int]
+//      ) { case (sortType, lastItemTime, pageSize) =>
+//        dealFutureResult {
+//          val future: Future[Option[List[UserFeedReq]]] = userManager ? (GetUserFeed(u.uid, sortType, lastItemTime, pageSize, _))
+//          future.map {
+//            case Some(feeds) =>
+//              dealFutureResult {
+//
+//              }
+//
+//            case None =>
+//              complete(ErrorRsp(120007, "sortType error...."))
+//
+//          }.recover {
+//            case e: Exception =>
+//              log.info(s"postArt exception.." + e.getMessage)
+//              complete(ErrorRsp(120003, "网络异常,请稍后再试!"))
+//          }
+//        }
+//      }
+//    }
+//  }
 
   val userRoutes: Route =
     pathPrefix("user") {
