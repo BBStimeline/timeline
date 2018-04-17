@@ -1,7 +1,7 @@
 logLevel := Level.Warn
 //val sbtRevolverV = "0.7.2"
-val sbtRevolverV = "0.8.0"
-val sbtAssemblyV = "0.13.0"
+val sbtRevolverV = "0.9.1"
+val sbtAssemblyV = "0.14.6"
 //val sbtPackV = "0.8.0"
 val sbtPackV = "0.8.2"
 val sbtScalaJsV = "0.6.22"
