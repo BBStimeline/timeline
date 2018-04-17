@@ -138,7 +138,7 @@ object LoginPage extends Index {
           <input type="password" id="signPwd" placeholder="密码" class="pure-u-1"></input>
         </div>
         <div>
-          <input type="text" id="mail" placeholder="邮箱" autofocus="true" class="pure-u-1"></input>
+          <input type="email" id="mail" placeholder="邮箱" autofocus="true" class="pure-u-1"></input>
         </div>
         <div>
           <input type="text" id="city" placeholder="城市" autofocus="true" class="pure-u-1"></input>
@@ -169,7 +169,7 @@ object LoginPage extends Index {
   val h = (dom.document.body.clientHeight - 280)/2
 
   def app: xml.Node = {
-    <div style="background:url(../static/img/background.jpg);height:100%" backgroundSize="100% 100%" width={w+"px"}>
+    <div style="background:url(../static/img/back-1.png);height:100%" backgroundSize="100% 100%" width={w+"px"}>
       <div width="100%" height={h+"px"}></div>
       <div class="pure-u-1-8"></div>
       <div class="pure-u-3-4" position="relative"></div>
