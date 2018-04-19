@@ -43,7 +43,7 @@ object UserActor {
 
   private val maxFeedLength = 50
   private val cleanFeedTime = 20.minutes
-  private val defaultUser=AuthorInfo(0l,"",0)
+  private val defaultUser=AuthorInfo("","",0)
 
 
   def init(uid: Long): Behavior[Command] = {
@@ -57,17 +57,17 @@ object UserActor {
           follows <- FollowDAO.getFollows(uid)
         } yield {
           val favBoard = new mutable.HashSet[(Int, String)]()
-          val favUser = new mutable.HashSet[(Int,Long)]()
+          val favUser = new mutable.HashSet[(Int,String)]()
           val favTopic = new mutable.HashSet[(Int, String, Long)]()
           val newFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long,Option[AuthorInfo])]()
           val newReplyFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long,Option[AuthorInfo])]()
 
           if (feed.nonEmpty) {
             feed.filter(_.postTime != 0).sortBy(_.postTime).reverse.take(maxFeedLength).foreach { f =>
-              newFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname, f.topicId,f.postTime)), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(0l),f.authorName.getOrElse(""),f.origin))))
+              newFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname, f.topicId,f.postTime)), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(""),f.authorName.getOrElse(""),f.origin))))
             }
             feed.filter(_.lastReplyTime != 0).sortBy(_.lastReplyTime).reverse.take(maxFeedLength).foreach { f =>
-              newReplyFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname,f.topicId, f.postTime)), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(0l),f.authorName.getOrElse(""),f.origin))))
+              newReplyFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname,f.topicId, f.postTime)), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(""),f.authorName.getOrElse(""),f.origin))))
             }
           }
           follows._1.map(r=>

@@ -41,7 +41,7 @@ object FollowDAO {
     tUserFollowTopic.filter(i => i.userId === userId && i.origin === origin && i.boardName === boardName && i.topicId === topicId).exists.result
   }
 
-  def checkFollowUser(userId: Long, followUser: Long) = db.run{
+  def checkFollowUser(userId: Long, followUser: String) = db.run{
     tUserFollowUser.filter(i => i.userId === userId && i.followId === followUser).exists.result
   }
 
@@ -103,14 +103,14 @@ object FollowDAO {
     tUserFollowTopic.filter(i => i.userId === userId && i.origin === origin && i.boardName === boardName && i.topicId === topicId).delete
   }
 
-  def unFollowUser(userId: Long, followId: Long) ={
-    val action = for{
-      r1 <- tUser.filter(_.id === followId).result.head
-      r2 <- tUserFollowUser.filter(i => i.userId === userId && i.followId === followId).delete
-    } yield{
-      (r1, r2)
-    }
-    db.run(action.transactionally)
+  def unFollowUser(userId: Long, followId: String) ={
+//    val action = for{
+//      r1 <- tUser.filter(_.id === followId).result.head
+//      r2 <- tUserFollowUser.filter(i => i.userId === userId && i.followId === followId).delete
+//    } yield{
+//      (r1, r2)
+//    }
+    db.run(tUserFollowUser.filter(i => i.userId === userId && i.followId === followId).delete)
   }
 
   def unFollow(id: Long, followType: Int) = {
@@ -132,11 +132,11 @@ object FollowDAO {
     }
   }
 
-  def getFollowUser(uid: Long) = db.run(
+  def getFollowUser(uid: String) = db.run(
     tUserFollowUser.filter(_.followId === uid).map(_.userId).result
   )
 
-  def isUserFollow(uid: Long, userId:Long,origin:Int) = db.run(
+  def isUserFollow(uid: Long, userId:String,origin:Int) = db.run(
     tUserFollowUser.filter(i => i.userId === uid && i.followId===userId && i.origin===origin).exists.result
   )
 

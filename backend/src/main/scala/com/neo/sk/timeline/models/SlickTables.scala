@@ -90,7 +90,7 @@ trait SlickTables {
    *  @param postId Database column post_id SqlType(int8)
    *  @param isMain Database column is_main SqlType(bool)
    *  @param title Database column title SqlType(varchar), Length(127,true)
-   *  @param authorId Database column author_id SqlType(int8)
+   *  @param authorId Database column author_id SqlType(varchar), Length(64,true), Default()
    *  @param authorName Database column author_name SqlType(varchar), Length(31,true)
    *  @param content Database column content SqlType(text)
    *  @param imgs Database column imgs SqlType(text)
@@ -102,11 +102,11 @@ trait SlickTables {
    *  @param quoteId Database column quote_id SqlType(int8), Default(None)
    *  @param updateTime Database column update_time SqlType(int8)
    *  @param state Database column state SqlType(int4), Default(0) */
-  final case class rPosts(id: Long, origin: Int, topicId: Long, postId: Long, isMain: Boolean, title: String, authorId: Long, authorName: String, content: String, imgs: String, hestiaImgs: String, postTime: Long, boardName: String, url: String, boardNameCn: String, quoteId: Option[Long] = None, updateTime: Long, state: Int = 0)
+  final case class rPosts(id: Long, origin: Int, topicId: Long, postId: Long, isMain: Boolean, title: String, authorId: String = "", authorName: String, content: String, imgs: String, hestiaImgs: String, postTime: Long, boardName: String, url: String, boardNameCn: String, quoteId: Option[Long] = None, updateTime: Long, state: Int = 0)
   /** GetResult implicit for fetching rPosts objects using plain SQL queries */
   implicit def GetResultrPosts(implicit e0: GR[Long], e1: GR[Int], e2: GR[Boolean], e3: GR[String], e4: GR[Option[Long]]): GR[rPosts] = GR{
     prs => import prs._
-    rPosts.tupled((<<[Long], <<[Int], <<[Long], <<[Long], <<[Boolean], <<[String], <<[Long], <<[String], <<[String], <<[String], <<[String], <<[Long], <<[String], <<[String], <<[String], <<?[Long], <<[Long], <<[Int]))
+    rPosts.tupled((<<[Long], <<[Int], <<[Long], <<[Long], <<[Boolean], <<[String], <<[String], <<[String], <<[String], <<[String], <<[String], <<[Long], <<[String], <<[String], <<[String], <<?[Long], <<[Long], <<[Int]))
   }
   /** Table description of table posts. Objects of this class serve as prototypes for rows in queries. */
   class tPosts(_tableTag: Tag) extends profile.api.Table[rPosts](_tableTag, "posts") {
@@ -126,8 +126,8 @@ trait SlickTables {
     val isMain: Rep[Boolean] = column[Boolean]("is_main")
     /** Database column title SqlType(varchar), Length(127,true) */
     val title: Rep[String] = column[String]("title", O.Length(127,varying=true))
-    /** Database column author_id SqlType(int8) */
-    val authorId: Rep[Long] = column[Long]("author_id")
+    /** Database column author_id SqlType(varchar), Length(64,true), Default() */
+    val authorId: Rep[String] = column[String]("author_id", O.Length(64,varying=true), O.Default(""))
     /** Database column author_name SqlType(varchar), Length(31,true) */
     val authorName: Rep[String] = column[String]("author_name", O.Length(31,varying=true))
     /** Database column content SqlType(text) */
@@ -261,13 +261,13 @@ trait SlickTables {
    *  @param postTime Database column post_time SqlType(int8), Default(0)
    *  @param lastReplyTime Database column last_reply_time SqlType(int8), Default(0)
    *  @param feedType Database column feed_type SqlType(int4), Default(0)
-   *  @param authorId Database column author_id SqlType(int8), Default(None)
+   *  @param authorId Database column author_id SqlType(varchar), Length(64,true), Default(Some())
    *  @param authorName Database column author_name SqlType(varchar), Length(100,true), Default(None) */
-  final case class rUserFeed(id: Long, userId: Long = 0L, origin: Int = 0, boardname: String = "", topicId: Long = 0L, postId: Long = 0L, postTime: Long = 0L, lastReplyTime: Long = 0L, feedType: Int = 0, authorId: Option[Long] = None, authorName: Option[String] = None)
+  final case class rUserFeed(id: Long, userId: Long = 0L, origin: Int = 0, boardname: String = "", topicId: Long = 0L, postId: Long = 0L, postTime: Long = 0L, lastReplyTime: Long = 0L, feedType: Int = 0, authorId: Option[String] = Some(""), authorName: Option[String] = None)
   /** GetResult implicit for fetching rUserFeed objects using plain SQL queries */
-  implicit def GetResultrUserFeed(implicit e0: GR[Long], e1: GR[Int], e2: GR[String], e3: GR[Option[Long]], e4: GR[Option[String]]): GR[rUserFeed] = GR{
+  implicit def GetResultrUserFeed(implicit e0: GR[Long], e1: GR[Int], e2: GR[String], e3: GR[Option[String]]): GR[rUserFeed] = GR{
     prs => import prs._
-    rUserFeed.tupled((<<[Long], <<[Long], <<[Int], <<[String], <<[Long], <<[Long], <<[Long], <<[Long], <<[Int], <<?[Long], <<?[String]))
+    rUserFeed.tupled((<<[Long], <<[Long], <<[Int], <<[String], <<[Long], <<[Long], <<[Long], <<[Long], <<[Int], <<?[String], <<?[String]))
   }
   /** Table description of table user_feed. Objects of this class serve as prototypes for rows in queries. */
   class tUserFeed(_tableTag: Tag) extends profile.api.Table[rUserFeed](_tableTag, "user_feed") {
@@ -293,8 +293,8 @@ trait SlickTables {
     val lastReplyTime: Rep[Long] = column[Long]("last_reply_time", O.Default(0L))
     /** Database column feed_type SqlType(int4), Default(0) */
     val feedType: Rep[Int] = column[Int]("feed_type", O.Default(0))
-    /** Database column author_id SqlType(int8), Default(None) */
-    val authorId: Rep[Option[Long]] = column[Option[Long]]("author_id", O.Default(None))
+    /** Database column author_id SqlType(varchar), Length(64,true), Default(Some()) */
+    val authorId: Rep[Option[String]] = column[Option[String]]("author_id", O.Length(64,varying=true), O.Default(Some("")))
     /** Database column author_name SqlType(varchar), Length(100,true), Default(None) */
     val authorName: Rep[Option[String]] = column[Option[String]]("author_name", O.Length(100,varying=true), O.Default(None))
   }
@@ -380,16 +380,16 @@ trait SlickTables {
   /** Entity class storing rows of table tUserFollowUser
    *  @param id Database column id SqlType(bigserial), AutoInc, PrimaryKey
    *  @param userId Database column user_id SqlType(int8), Default(0)
-   *  @param followId Database column follow_id SqlType(int8), Default(0)
+   *  @param followId Database column follow_id SqlType(varchar), Length(64,true), Default()
    *  @param followName Database column follow_name SqlType(varchar), Length(200,true), Default()
    *  @param createTime Database column create_time SqlType(int8)
    *  @param origin Database column origin SqlType(int4)
    *  @param state Database column state SqlType(int4), Default(0) */
-  final case class rUserFollowUser(id: Long, userId: Long = 0L, followId: Long = 0L, followName: String = "", createTime: Long, origin: Int, state: Int = 0)
+  final case class rUserFollowUser(id: Long, userId: Long = 0L, followId: String = "", followName: String = "", createTime: Long, origin: Int, state: Int = 0)
   /** GetResult implicit for fetching rUserFollowUser objects using plain SQL queries */
   implicit def GetResultrUserFollowUser(implicit e0: GR[Long], e1: GR[String], e2: GR[Int]): GR[rUserFollowUser] = GR{
     prs => import prs._
-    rUserFollowUser.tupled((<<[Long], <<[Long], <<[Long], <<[String], <<[Long], <<[Int], <<[Int]))
+    rUserFollowUser.tupled((<<[Long], <<[Long], <<[String], <<[String], <<[Long], <<[Int], <<[Int]))
   }
   /** Table description of table user_follow_user. Objects of this class serve as prototypes for rows in queries. */
   class tUserFollowUser(_tableTag: Tag) extends profile.api.Table[rUserFollowUser](_tableTag, "user_follow_user") {
@@ -401,8 +401,8 @@ trait SlickTables {
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
     /** Database column user_id SqlType(int8), Default(0) */
     val userId: Rep[Long] = column[Long]("user_id", O.Default(0L))
-    /** Database column follow_id SqlType(int8), Default(0) */
-    val followId: Rep[Long] = column[Long]("follow_id", O.Default(0L))
+    /** Database column follow_id SqlType(varchar), Length(64,true), Default() */
+    val followId: Rep[String] = column[String]("follow_id", O.Length(64,varying=true), O.Default(""))
     /** Database column follow_name SqlType(varchar), Length(200,true), Default() */
     val followName: Rep[String] = column[String]("follow_name", O.Length(200,varying=true), O.Default(""))
     /** Database column create_time SqlType(int8) */

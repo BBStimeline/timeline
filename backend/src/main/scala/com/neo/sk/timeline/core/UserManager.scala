@@ -27,10 +27,10 @@ object UserManager {
 //  final case class UpdateUserFeed(uid: Long, post:PostBaseInfo, author:AuthorInfo, lastReplyTime: Long, feedType: String) extends Command
 //
   final case class GetUserFeed(uid: Long, sortType: Int, lastItemTime: Long, pageSize: Int, replyTo:ActorRef[Option[List[UserFeedReq]]]) extends Command
-  final case class UserFollowUserMsg(uid: Long, followId:Long,followName:String,origin:Int) extends Command
+  final case class UserFollowUserMsg(uid: Long, followId:String,followName:String,origin:Int) extends Command
   final case class UserFollowBoardMsg(uid: Long, boardName: String, origin:Int) extends Command
   final case class UserFollowTopicMsg(uid: Long, post:PostBaseInfo) extends Command
-  final case class UserUnFollowUserMsg(uid: Long, followId:Long,followName:String,origin:Int) extends Command
+  final case class UserUnFollowUserMsg(uid: Long, followId:String,followName:String,origin:Int) extends Command
   final case class UserUnFollowBoardMsg(uid: Long, boardName: String, origin: Int) extends Command
   final case class UserUnFollowTopicMsg(uid: Long, post:PostBaseInfo) extends Command
 //

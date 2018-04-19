@@ -12,7 +12,7 @@ object DistributeProtocol {
   case class DisType(
                     board:Option[String]=None,
                     topicId:Option[Long]=None,
-                    userId:Option[Long]=None,
+                    userId:Option[String]=None,
                     userName:Option[String]=None,
                     origin:Int
                     )

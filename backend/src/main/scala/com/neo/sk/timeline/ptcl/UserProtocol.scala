@@ -15,14 +15,14 @@ object UserProtocol {
                             bbsId: String,
                             headImg: String,
                             favBoards: mutable.HashSet[(Int, String)]=mutable.HashSet(),
-                            favUsers:mutable.HashSet[(Int,Long)]=mutable.HashSet(),
+                            favUsers:mutable.HashSet[(Int,String)]=mutable.HashSet(),
                             favTopic: mutable.HashSet[(Int, String, Long)]=mutable.HashSet(),
                             newFeed: mutable.HashMap[(Int, PostBaseInfo), (Long,Long,Option[AuthorInfo])] = mutable.HashMap(),//(postId,replyPostTime)
                             newReplyFeed: mutable.HashMap[(Int, PostBaseInfo), (Long,Long,Option[AuthorInfo])] = mutable.HashMap()
                           )
 
   case class AuthorInfo(
-                         authorId:Long,
+                         authorId:String,
                          authorName:String,
                          origin:Int // 0：水木本身发帖用户 ,1水木plus用户
                        )
