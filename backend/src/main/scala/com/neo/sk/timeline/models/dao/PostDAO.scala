@@ -23,8 +23,8 @@ object PostDAO {
     db.run(tPosts.returning(tPosts.map(_.id))+=line)
   }
 
-  def getLastTopicByUser(userId:Long, userName:String, origin:Int, num:Int)={
-    db.run(tPosts.filter(r=>r.authorId===userId&&r.origin===origin).sortBy(_.postTime desc).take(num).result)
+  def getLastTopicByUser(userId:String, userName:String, origin:Int, num:Int)={
+    db.run(tPosts.filter(r=>r.authorId===userId&&r.origin===origin).sortBy(_.postTime.desc).take(num).result)
   }
 
   def getUserByPostId(topics:Seq[(Int,String,Long)])={

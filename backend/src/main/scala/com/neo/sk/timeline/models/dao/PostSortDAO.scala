@@ -20,11 +20,11 @@ object PostSortDAO {
   }
 
   def getPostListByPostTime(board:String, origin:Int, num:Int)={
-    db.run(tPostSortReplyTime.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.postTime desc).take(num).result)
+    db.run(tPostSortReplyTime.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.postTime.desc).take(num).result)
   }
 
   def getPostListByReplyTime(board:String, origin:Int, num:Int)={
-    db.run(tPostSortReplyTime.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.replyTime desc).take(num).result)
+    db.run(tPostSortReplyTime.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.replyTime.desc).take(num).result)
   }
 
   def getPostById(origin:Int,board:String,topicId:Long)={

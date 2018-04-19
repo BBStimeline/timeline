@@ -26,13 +26,13 @@ object Main {
   )
 
   def getActiveApp =
-    indexPage.find(_.url == dom.window.location.hash.split("&")(0)).getOrElse(indexPage.head)
+    indexPage.find(_.url == dom.window.location.hash).getOrElse(indexPage.head)
 
   val activeExample: Var[Index] = Var(getActiveApp)
 
   dom.window.onhashchange = { _: Event =>
     println("here change hash")
-    println(dom.window.location.hash.split("&")(0))
+    println(dom.window.location.hash)
     if(dom.window.location.hash != "#LoginPage"){
       dom.window.localStorage.setItem("current-hash",dom.window.location.hash)
     }

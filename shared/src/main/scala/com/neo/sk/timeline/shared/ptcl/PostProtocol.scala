@@ -15,7 +15,7 @@ object PostProtocol {
                            )
 
   case class AuthorInfo(
-                         authorId:Long,
+                         authorId:String,
                          authorName:String,
                          origin:Int // 0：水木本身发帖用户 ,1水木plus用户
                        )

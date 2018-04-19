@@ -25,7 +25,7 @@ object UserFollowProtocol {
                               )
 
   case class AddFollowUserReq(
-                               userId:Long,
+                               userId:String,
                                userName:String,
                                origin:Int
                              )
@@ -43,7 +43,7 @@ object UserFollowProtocol {
 
   case class UnFollowUser(
                          origin:Int,
-                         userId: Long,
+                         userId: String,
                          userName:String
                          )
 

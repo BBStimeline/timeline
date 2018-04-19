@@ -66,7 +66,7 @@ object UserDAO {
     tUserFeed.filter(i => i.userId === uid && i.origin === origin && i.boardname === boardName && i.feedType === FeedType.BOARD).delete
   }
 
-  def cleanUserFeed(uid: Long, authorId: Option[Long], origin:Int) = db.run{
+  def cleanUserFeed(uid: Long, authorId: Option[String], origin:Int) = db.run{
     tUserFeed.filter(i => i.userId === uid && i.origin===origin&&i.authorId===authorId&& i.feedType === FeedType.USER).delete
   }
 
