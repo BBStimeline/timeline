@@ -11,9 +11,10 @@ object Constant {
     val IMPORTANT = 1
   }
 
-  object UserOrigin{
+  object OriginType{
     val TIANYA = 0
     val SELFPLUS = 1
+    val SMTH = 2
   }
 
   object FeedType{

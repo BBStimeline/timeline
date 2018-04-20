@@ -4,7 +4,7 @@ import com.neo.sk.timeline.utils.DBUtil.db
 import slick.jdbc.PostgresProfile.api._
 import com.neo.sk.timeline.models.SlickTables._
 import com.neo.sk.timeline.models.{SlickTables, UserInfoDetail}
-import com.neo.sk.timeline.common.Constant.UserOrigin
+import com.neo.sk.timeline.common.Constant.OriginType
 import com.neo.sk.timeline.Boot.executor
 /**
   * User: sky
@@ -26,7 +26,7 @@ object BBSUserDAO {
     val now = System.currentTimeMillis()
     val action = for {
       r1 <- tBbsUser.returning(tBbsUser.map(_.id)) +=
-        rBbsUser(-1l, bbsId, bbsInfo.user_name, bbsInfo.face_url, UserOrigin.TIANYA, now)
+        rBbsUser(-1l, bbsId, bbsInfo.user_name, bbsInfo.face_url, OriginType.TIANYA, now)
       r2 <- tUser.returning(tUser.map(_.id)) +=
         rUser(-1l, "", bbsId, "", -1l, "", now, "", "", "", "", 0, 0, 0)
     } yield {
@@ -43,6 +43,6 @@ object BBSUserDAO {
 
   def addBbsUser(bbsInfo: UserInfoDetail) = db.run(
     tBbsUser.returning(tBbsUser.map(_.id)) +=
-      rBbsUser(-1l, bbsInfo.bbs_id, bbsInfo.user_name, bbsInfo.face_url, UserOrigin.TIANYA, System.currentTimeMillis())
+      rBbsUser(-1l, bbsInfo.bbs_id, bbsInfo.user_name, bbsInfo.face_url, OriginType.TIANYA, System.currentTimeMillis())
   )
 }

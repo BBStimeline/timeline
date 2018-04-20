@@ -9,7 +9,7 @@ import com.neo.sk.timeline.ptcl.UserProtocol._
 import scala.concurrent.duration._
 import scala.collection.mutable
 import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
-import com.neo.sk.timeline.core.UserManager.UserLogout
+import com.neo.sk.timeline.core.user.UserManager.UserLogout
 import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisCache, DisType, FeedListInfo}
 import com.neo.sk.timeline.common.Constant.FeedType._
 
@@ -87,7 +87,7 @@ object DistributeActor {
           PostSortDAO.getPostById(origin,board,topicId).map{
             case Some(p)=>
               newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime,None))
-              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postTime,p.replyTime,None))
+              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postId,p.replyTime,None))
               ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
         }

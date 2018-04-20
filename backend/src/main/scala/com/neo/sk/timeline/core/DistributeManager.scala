@@ -21,7 +21,7 @@ object DistributeManager {
   final case class RemoveFollowObject(name:String,variety:Int) extends Command with DistributeActor.Command
   case class GetFeedList(feedType: Int, name: String, replyTo: ActorRef[FeedListInfo]) extends Command with DistributeActor.Command
   final case class ChildDead(name:String,variety:Int,childRef:ActorRef[DistributeActor.Command]) extends Command
-  final case class DealTask(event:PostEvent)
+  final case class DealTask(event:PostEvent) extends Command with DistributeActor.Command
 
   private val objectHash:mutable.HashMap[(String,Int),DisType]=mutable.HashMap() //(name,type)
 

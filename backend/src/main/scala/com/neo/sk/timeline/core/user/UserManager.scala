@@ -1,10 +1,9 @@
-package com.neo.sk.timeline.core
+package com.neo.sk.timeline.core.user
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
-import org.slf4j.LoggerFactory
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.neo.sk.timeline.ptcl.UserProtocol.{PostBaseInfo, UserFeedReq}
-import com.neo.sk.timeline.shared.ptcl.UserProtocol.UserLoginRsp
+import org.slf4j.LoggerFactory
 /**
   * User: sky
   * Date: 2018/4/8

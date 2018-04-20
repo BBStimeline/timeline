@@ -1,7 +1,7 @@
 package com.neo.sk.timeline.service
 
 import akka.http.scaladsl.server.Directives._
-import com.neo.sk.timeline.core.UserManager._
+import com.neo.sk.timeline.core.user.UserManager._
 
 import scala.concurrent.Future
 import com.neo.sk.timeline.ptcl.UserProtocol._
@@ -20,8 +20,8 @@ import com.neo.sk.timeline.service.ServiceUtils.CommonRsp
 import com.neo.sk.timeline.service.SessionBase.UserSessionKey
 import com.neo.sk.timeline.shared.ptcl.UserProtocol._
 import com.neo.sk.timeline.utils.SecureUtil
-import com.neo.sk.timeline.Boot.{executor, timeout, userManager, scheduler}
-import com.neo.sk.timeline.core.UserManager
+import com.neo.sk.timeline.Boot.{executor, scheduler, timeout, userManager}
+import com.neo.sk.timeline.core.user.UserManager
 
 import scala.concurrent.duration._
 
