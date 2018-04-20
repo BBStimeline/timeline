@@ -25,7 +25,7 @@ object PostDAO {
   }
 
   def insertList(list:List[rPosts])={
-    db.run(tPosts.returning(tPosts.map(_.id))++=list)
+    db.run(tPosts++=list)
   }
 
   def getLastTopicByUser(userId:String, userName:String, origin:Int, num:Int)={

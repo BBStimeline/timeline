@@ -15,6 +15,7 @@ object PostProtocol {
                       postId:Long,
                       postTime:Long,
                       authorId:String,
+                      authorName:String,
                       isMain:Boolean
                       )
 
@@ -73,7 +74,7 @@ object PostProtocol {
                           )
 
   case class OrderPostRsp(
-                           posts:Seq[OrderPostInfo],
+                           posts:List[OrderPostInfo],
                            errCode:Int,
                            msg:String
                          )

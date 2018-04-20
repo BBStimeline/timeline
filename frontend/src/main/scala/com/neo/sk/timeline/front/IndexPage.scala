@@ -1,4 +1,3 @@
-
 package com.neo.sk.timeline.front
 
 import com.neo.sk.timeline.front.pages.{LoginPage, MainPage}
@@ -9,7 +8,9 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 import scala.xml.{Elem}
 import scala.language.implicitConversions
 /**
-  * Created by sky
+  * User: sky
+  * Date: 2018/4/20
+  * Time: 14:13
   */
 trait Index extends Component{
   val locationHashString: String

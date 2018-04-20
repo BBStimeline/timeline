@@ -6,7 +6,9 @@ import BoardManager.GetTopicInfoReqMsg
 import com.neo.sk.timeline.core.postInfo.PostActor
 import com.neo.sk.timeline.models.SlickTables
 import org.slf4j.LoggerFactory
-
+import com.neo.sk.timeline.models.SlickTables.rPosts
+import com.neo.sk.timeline.models.dao.BoardDAO
+import com.neo.sk.timeline.Boot.{executor,timeout,scheduler}
 import scala.concurrent.duration._
 /**
   * User: sky
@@ -25,7 +27,7 @@ object BoardActor {
                                    timeOut: TimeOut = TimeOut("busy time error")
                                  ) extends Command
   /**消息配置*/
-
+  case class InsertPost(post:rPosts) extends Command
 
 
   /**基础配置*/
@@ -37,6 +39,13 @@ object BoardActor {
         log.debug(s"${ctx.self.path} board=${origin+"-"+boardName} is starting...")
         implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
         Behaviors.withTimers[Command]{ implicit timer =>
+          BoardDAO.getBoard(origin,boardName).map(r=>
+            if(!r.isEmpty){
+              ctx.self ! SwitchBehavior("idle",idle(r.get,r.get.postTodayNum))
+            }else{
+              log.info(s"the board--$origin--$boardName is't in boardDB")
+            }
+          )
           switchBehavior(ctx,"busy",busy(),InitTime,TimeOut("init"))
         }
     }
@@ -49,11 +58,17 @@ object BoardActor {
                     timer:TimerScheduler[Command]
                   ):Behavior[Command] = {
     Behaviors.immutable[Command]{ (ctx,msg) =>
+      var postNum=toDayPosts
       msg match {
         case msg:GetTopicInfoReqMsg=>
           getPost(ctx,msg.origin,msg.board,msg.topicId) ! msg
           Behaviors.same
 
+        case InsertPost(post)=>
+          if(post.isMain){
+            postNum+=1
+          }
+          Behaviors.same
         case x=>
           log.warn(s"unknown msg: $x")
           Behaviors.unhandled

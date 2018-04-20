@@ -12,9 +12,9 @@ object Constant {
   }
 
   object OriginType{
-    val TIANYA = 0
+    val TIANYA = 2
     val SELFPLUS = 1
-    val SMTH = 2
+    val SMTH = 0
   }
 
   object FeedType{

@@ -3,12 +3,15 @@ package com.neo.sk.timeline.core.postInfo
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.neo.sk.timeline.Boot.{executor, scheduler, timeout}
+import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
+import com.neo.sk.timeline.core.DistributeManager
 import com.neo.sk.timeline.core.postInfo.PostActor
 import com.neo.sk.timeline.ptcl.UserProtocol.UserFeedReq
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
+import com.neo.sk.timeline.ptcl.PostProtocol.PostEvent
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.{Post}
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, UserFeedRsp}
 import org.slf4j.LoggerFactory
+import com.neo.sk.timeline.models.SlickTables.rPosts
 
 import scala.concurrent.Future
 /**
@@ -20,6 +23,7 @@ object BoardManager {
   val log = LoggerFactory.getLogger(this.getClass)
   sealed trait Command
   final case class GetTopicList(req:List[UserFeedReq],replyTo:ActorRef[UserFeedRsp]) extends Command
+  final case class InsertPostList(list:List[rPosts]) extends Command
 
   /**通用消息*/
   case class GetTopicInfoReqMsg(origin:Int,board:String,topicId:Long,postId:Long,replyTo:ActorRef[GetTopicInfoRsp]) extends Command with BoardActor.Command with PostActor.Command
@@ -34,6 +38,13 @@ object BoardManager {
           val rspFuture = Future.sequence(msg.req.map{t =>getBoard(ctx,t.origin,t.board) ? (GetTopicInfoReqMsg(t.origin,t.board,t.topicId,t.postId,_:ActorRef[GetTopicInfoRsp]))})
           rspFuture.map{topics=>
             msg.replyTo ! UserFeedRsp(normalPost = topics.map(r=>FeedPost(r.topic,r.topic.postTime)))
+          }
+          Behaviors.same
+
+        case msg:InsertPostList=>
+          msg.list.foreach{ p=>
+            getBoard(ctx,p.origin,p.boardName) ! BoardActor.InsertPost(p)
+            distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
           }
           Behaviors.same
 

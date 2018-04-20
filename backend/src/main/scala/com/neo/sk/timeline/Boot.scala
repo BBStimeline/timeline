@@ -8,7 +8,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import akka.actor.typed.scaladsl.adapter._
 import com.neo.sk.timeline.core.postInfo.BoardManager
-import com.neo.sk.timeline.core.DistributeManager
+import com.neo.sk.timeline.core.{DistributeManager, SynDataActor}
 import com.neo.sk.timeline.core.user.UserManager
 import com.neo.sk.timeline.service.HttpService
 
@@ -44,6 +44,8 @@ object Boot extends HttpService {
   val distributeManager = system.spawn(DistributeManager.behavior, "distributeManager")
 
   val boardManager = system.spawn(BoardManager.behavior,"boardManager")
+
+  val synDataActor = system.spawn(SynDataActor.behavior,"synDataActor")
 
   def main(args: Array[String]) {
     log.info("Starting.")
