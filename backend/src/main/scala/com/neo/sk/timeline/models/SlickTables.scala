@@ -58,18 +58,20 @@ trait SlickTables {
    *  @param id Database column id SqlType(bigserial), AutoInc, PrimaryKey
    *  @param boardName Database column board_name SqlType(varchar), Length(50,true)
    *  @param boardNameCn Database column board_name_cn SqlType(varchar), Length(50,true)
-   *  @param origin Database column origin SqlType(int4) */
-  final case class rBoard(id: Long, boardName: String, boardNameCn: String, origin: Int)
+   *  @param origin Database column origin SqlType(int4)
+   *  @param firstSpell Database column first_spell SqlType(varchar), Length(2,true), Default(Z)
+   *  @param postTodayNum Database column post_today_num SqlType(int4), Default(0) */
+  final case class rBoard(id: Long, boardName: String, boardNameCn: String, origin: Int, firstSpell: String = "Z", postTodayNum: Int = 0)
   /** GetResult implicit for fetching rBoard objects using plain SQL queries */
   implicit def GetResultrBoard(implicit e0: GR[Long], e1: GR[String], e2: GR[Int]): GR[rBoard] = GR{
     prs => import prs._
-    rBoard.tupled((<<[Long], <<[String], <<[String], <<[Int]))
+    rBoard.tupled((<<[Long], <<[String], <<[String], <<[Int], <<[String], <<[Int]))
   }
   /** Table description of table board. Objects of this class serve as prototypes for rows in queries. */
   class tBoard(_tableTag: Tag) extends profile.api.Table[rBoard](_tableTag, "board") {
-    def * = (id, boardName, boardNameCn, origin) <> (rBoard.tupled, rBoard.unapply)
+    def * = (id, boardName, boardNameCn, origin, firstSpell, postTodayNum) <> (rBoard.tupled, rBoard.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(boardName), Rep.Some(boardNameCn), Rep.Some(origin)).shaped.<>({r=>import r._; _1.map(_=> rBoard.tupled((_1.get, _2.get, _3.get, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(boardName), Rep.Some(boardNameCn), Rep.Some(origin), Rep.Some(firstSpell), Rep.Some(postTodayNum)).shaped.<>({r=>import r._; _1.map(_=> rBoard.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(bigserial), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -79,6 +81,10 @@ trait SlickTables {
     val boardNameCn: Rep[String] = column[String]("board_name_cn", O.Length(50,varying=true))
     /** Database column origin SqlType(int4) */
     val origin: Rep[Int] = column[Int]("origin")
+    /** Database column first_spell SqlType(varchar), Length(2,true), Default(Z) */
+    val firstSpell: Rep[String] = column[String]("first_spell", O.Length(2,varying=true), O.Default("Z"))
+    /** Database column post_today_num SqlType(int4), Default(0) */
+    val postTodayNum: Rep[Int] = column[Int]("post_today_num", O.Default(0))
   }
   /** Collection-like TableQuery object for table tBoard */
   lazy val tBoard = new TableQuery(tag => new tBoard(tag))

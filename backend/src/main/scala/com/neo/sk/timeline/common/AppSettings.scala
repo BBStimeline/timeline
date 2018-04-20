@@ -72,11 +72,16 @@ object AppSettings {
   val isTest = dependenceConfig.getBoolean("isTest")
   val authCheck = dependenceConfig.getBoolean("authCheck")
 
+
   val smallSpiderConfig = appConfig.getConfig("smallSpider")
   val smallSpiderProtocol = smallSpiderConfig.getString("protocol")
   val smallSpiderDomain = smallSpiderConfig.getString("domain")
   val smallSpiderAppId = smallSpiderConfig.getString("appId")
   val smallSpiderSecureKey = smallSpiderConfig.getString("secureKey")
+  val isStart = smallSpiderConfig.getBoolean("isStart")
+  val synCount=smallSpiderConfig.getInt("synDataCount")
+  val synTime=smallSpiderConfig.getInt("synDataTime")
+  val synOutTime=smallSpiderConfig.getInt("synOutTime")
 
   val sessionConfig = {
     val sConf = config.getConfig("session")

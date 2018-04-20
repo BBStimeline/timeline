@@ -7,9 +7,12 @@ import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.models.dao.{FollowDAO, PostDAO, SynDataDAO}
 import com.neo.sk.timeline.ptcl.UserProtocol._
 import akka.actor.typed.scaladsl.AskPattern._
-import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
+import com.neo.sk.timeline.Boot.{boardManager, executor, scheduler, timeout}
 import com.neo.sk.timeline.common.AppSettings
+import com.neo.sk.timeline.common.Constant.OriginType
+import com.neo.sk.timeline.core.postInfo.BoardManager
 import com.neo.sk.timeline.utils.SmallSpiderClient
+
 import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -30,20 +33,23 @@ object SynDataActor {
   case object StopSynData extends Command
 
   private var id:Long=0
-  private var count = 500
-  private val synTime=60.seconds
-  private val synOutTime=2.hours
+  private var count = AppSettings.synCount
+  private val synTime= AppSettings.synTime.seconds
+  private val synOutTime=AppSettings.synOutTime.hours
+  private val isStart=AppSettings.isStart
 
   def behavior: Behavior[Command] ={
     Behaviors.setup[Command]{ctx=>
       Behaviors.withTimers{implicit timer =>
-        SynDataDAO.getData(1).map{
-          case Some(r)=>
-          id=r
-          log.info(s"start synData with id=$id")
-          timer.startPeriodicTimer(TimerKey,Timeout,synTime)
-          timer.startPeriodicTimer(DelTimeKey,DelTimeout,synOutTime)
-          case None =>log.debug(s"dataBase being wrong")
+        if(isStart){
+          SynDataDAO.getData(1).map{
+            case Some(r)=>
+              id=r
+              log.info(s"start synData with id=$id")
+              timer.startPeriodicTimer(TimerKey,Timeout,synTime)
+              timer.startPeriodicTimer(DelTimeKey,DelTimeout,synOutTime)
+            case None =>log.debug(s"dataBase being wrong")
+          }
         }
         active
       }
@@ -65,20 +71,29 @@ object SynDataActor {
             case Success(None) =>log.debug(s"dataBase being wrong")
           })
           Behaviors.same
+
         case Timeout =>
           SmallSpiderClient.getSynPosts(id,count).map{
             case Right(p) =>
-              
-              id=p.last.id
-              SynDataDAO.updateData(1, id).map { r =>
-                if (r < 0l) {
-                  log.error(s"failed to save postId to record...postId=$id")
-                } else {
-                  log.info("postId===" + id)
+              val now=System.currentTimeMillis()
+              val list = p.map({x=>
+                SlickTables.rPosts(x.id,OriginType.SMTH,x.topicId,x.postId,x.mainPost,
+                  x.title,x.authorId,x.nickname,x.contentText,x.imgs,x.hestiaImgs,x.timestamp,x.boardName,x.url,x.boardNameCn,if(x.quoteId==0l) None else Some(x.quoteId),now,0,x.id)})
+              PostDAO.insertList(list).map{re=>
+                boardManager ! BoardManager.InsertPostList(list)
+                id=p.last.id
+                SynDataDAO.updateData(1, id).map { r =>
+                  if (r < 0l) {
+                    log.error(s"failed to save postId to record...postId=$id")
+                  } else {
+                    log.info("postId===" + id)
+                  }
                 }
+                count=500
+              }.recover{
+                case e=>
+                  log.error(s"failed to insert posts with error $e")
               }
-              count=500
-
             case Left(e) =>
               if(count>500) count=500 else if(count>100) count=100 else if(count>100) count=50 else count=10
               log.info("fetch posts failed......"+e)

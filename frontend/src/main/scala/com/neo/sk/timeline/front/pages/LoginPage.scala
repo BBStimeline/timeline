@@ -104,11 +104,12 @@ object LoginPage extends Index {
 
   val divCheck1=Var(true)
   val divCheck2=Var(true)
-  val loginClass=divCheck1.map{
+
+  val loginClass:Rx[String]=divCheck1.map{
     case true=> "login front"
     case _=> "login back"
   }
-  val signClass=divCheck2.map{
+  val signClass:Rx[String]=divCheck2.map{
     case true=> "logout back"
     case _=> "logout front"
   }

@@ -9,9 +9,11 @@ import com.neo.sk.timeline.ptcl.UserProtocol._
 import scala.concurrent.duration._
 import scala.collection.mutable
 import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
+import com.neo.sk.timeline.common.Constant.FeedType
 import com.neo.sk.timeline.core.user.UserManager.UserLogout
 import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisCache, DisType, FeedListInfo}
 import com.neo.sk.timeline.common.Constant.FeedType._
+import com.neo.sk.timeline.ptcl.PostProtocol.PostEvent
 
 import scala.concurrent.Future
 /**
@@ -115,6 +117,14 @@ object DistributeActor {
             Behaviors.same
           }
 
+        case DealTask(p)=>
+          if(p.isMain){
+            disCache.newPost.put((p.origin,p.board,p.topicId,p.postTime),(p.postId,p.postTime,structAuthor(disCache.variety,p)))
+          }else{
+            disCache.newReplyPost.put((p.origin,p.board,p.topicId,p.postTime),(p.postId,p.postTime,structAuthor(disCache.variety,p)))
+          }
+          Behaviors.same
+
         case msg:GetFeedList=>
           val newPost=disCache.newPost.toList.sortBy(_._1._4).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2,r._2._3))
           val newReplyPost=disCache.newReplyPost.toList.sortBy(_._2._1).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2,r._2._3))
@@ -126,6 +136,10 @@ object DistributeActor {
           Behaviors.unhandled
       }
     }
+  }
+
+  private def structAuthor(variety:Int,post:PostEvent)={
+    if(variety==FeedType.USER) Some(AuthorInfo(post.authorId,post.authorName,post.origin)) else None
   }
 
   private def busy()(

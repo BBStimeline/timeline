@@ -17,8 +17,8 @@ object Routes {
 }
 
 object PageRoute{
-  val loginPage   =  "#LoginPage"
-  val mainPage    =  "#MainPage"
-  val timelinePage  =  "#timelinePage"
-  val recordsPage =  "#RecordsPage"
+  val loginPage   =  "#/LoginPage"
+  val mainPage    =  "#/MainPage"
+  val timelinePage  =  "#/timelinePage"
+  val recordsPage =  "#/RecordsPage"
 }

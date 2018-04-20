@@ -3,6 +3,7 @@ package com.neo.sk.timeline.core
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import org.slf4j.LoggerFactory
 import akka.actor.typed.{ActorRef, Behavior}
+import com.neo.sk.timeline.common.Constant.FeedType
 
 import scala.collection.mutable
 import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisType, FeedListInfo}
@@ -41,6 +42,16 @@ object DistributeManager {
 
         case msg:RemoveFollowObject=>
           objectHash.remove(msg.name,msg.variety)
+          Behaviors.same
+
+        case DealTask(event)=>
+          val follow=List((event.origin+"-"+event.board,FeedType.BOARD),(event.origin+"-"+event.authorId,FeedType.USER),
+            (event.origin+"-"+event.board+"-"+event.topicId,FeedType.TOPIC))
+          follow.foreach{r=>
+            if(objectHash.contains(r._1,r._2)){
+              getDistributeActor(ctx,r._1,r._2,None) ! DealTask(event)
+            }
+          }
           Behaviors.same
 
         case msg:GetFeedList=>

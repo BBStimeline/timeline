@@ -19,4 +19,8 @@ object BoardDAO {
     db.run(tBoard+=r)
   }
 
+  def getBoard(origin:Int,board:String)={
+    db.run(tBoard.filter(r=>r.origin===origin&&r.boardName===r.boardNameCn).result.headOption)
+  }
+
 }
