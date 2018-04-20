@@ -2,7 +2,7 @@ package com.neo.sk.timeline.service
 
 import akka.http.scaladsl.server.Directives._
 import akka.util.Timeout
-import com.neo.sk.timeline.core.UserManager._
+import com.neo.sk.timeline.core.user.UserManager._
 
 import scala.concurrent.Future
 import com.neo.sk.timeline.shared.ptcl.{ErrorRsp, SuccessRsp}

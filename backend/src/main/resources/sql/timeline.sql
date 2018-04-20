@@ -47,7 +47,7 @@ CREATE TABLE posts (
   post_id       BIGINT       NOT NULL,
   is_main       bool          NOT NULL, --是否为主贴 1是 0否
   title         VARCHAR(127) NOT NULL, --帖子标题
-  author_id     BIGINT  NOT NULL, --作者id
+  author_id     VARCHAR(64) DEFAULT '', --作者id
   author_name   VARCHAR(31)  NOT NULL, --作者name--bbsId or unionId
   content  TEXT         NOT NULL, --帖子文本内容
   imgs          TEXT         NOT NULL, --帖子图片url，以;分隔
@@ -79,8 +79,8 @@ CREATE TABLE public.user_feed (
   post_id    BIGINT NOT NULL  DEFAULT 0,
   post_time  BIGINT NOT NULL  DEFAULT 0,
   last_reply_time BIGINT NOT NULL  DEFAULT 0,
-  author_id    BIGINT NOT NULL DEFAULT 0,
-  author_name  VARCHAR(100) NOT NULL,
+  author_id    VARCHAR(64) ,
+  author_name  VARCHAR(100),
   feed_type    INT DEFAULT 0 NOT NULL
 );
 CREATE INDEX user_feed_user_id_idx ON user_feed(user_id);
@@ -105,7 +105,7 @@ CREATE index replyTime_replyIndex ON post_sort_reply_time(reply_time desc);
 CREATE TABLE public.user_follow_user(
   id SERIAL8 PRIMARY KEY NOT NULL,
   user_id BIGINT NOT NULL DEFAULT 0,
-  follow_id BIGINT NOT NULL DEFAULT 0,
+  follow_id VARCHAR(64) DEFAULT '' NOT NULL,
   follow_name VARCHAR(200) NOT NULL DEFAULT '',
   create_time BIGINT NOT NULL,
   origin INT NOT NULL ,
@@ -139,3 +139,10 @@ CREATE TABLE public.user_follow_topic
   origin INT NOT NULL DEFAULT 0
 );
 CREATE INDEX user_follow_topic_user_id_idx ON user_follow_topic(user_id);
+
+
+CREATE TABLE syn_data(
+  id SERIAL8 PRIMARY KEY NOT NULL,
+  data  BIGINT DEFAULT 0  NOT NULL,
+  note VARCHAR(100) NOT NULL DEFAULT ''
+);

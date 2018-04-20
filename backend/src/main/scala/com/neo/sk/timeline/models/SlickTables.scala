@@ -15,7 +15,7 @@ trait SlickTables {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(tBbsUser.schema, tBoard.schema, tPosts.schema, tPostSortReplyTime.schema, tUser.schema, tUserFeed.schema, tUserFollowBoard.schema, tUserFollowTopic.schema, tUserFollowUser.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(tBbsUser.schema, tBoard.schema, tPosts.schema, tPostSortReplyTime.schema, tSynData.schema, tUser.schema, tUserFeed.schema, tUserFollowBoard.schema, tUserFollowTopic.schema, tUserFollowUser.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -101,18 +101,19 @@ trait SlickTables {
    *  @param boardNameCn Database column board_name_cn SqlType(varchar), Length(31,true)
    *  @param quoteId Database column quote_id SqlType(int8), Default(None)
    *  @param updateTime Database column update_time SqlType(int8)
-   *  @param state Database column state SqlType(int4), Default(0) */
-  final case class rPosts(id: Long, origin: Int, topicId: Long, postId: Long, isMain: Boolean, title: String, authorId: String = "", authorName: String, content: String, imgs: String, hestiaImgs: String, postTime: Long, boardName: String, url: String, boardNameCn: String, quoteId: Option[Long] = None, updateTime: Long, state: Int = 0)
+   *  @param state Database column state SqlType(int4), Default(0)
+   *  @param pid Database column pid SqlType(int8), Default(0) */
+  final case class rPosts(id: Long, origin: Int, topicId: Long, postId: Long, isMain: Boolean, title: String, authorId: String = "", authorName: String, content: String, imgs: String, hestiaImgs: String, postTime: Long, boardName: String, url: String, boardNameCn: String, quoteId: Option[Long] = None, updateTime: Long, state: Int = 0, pid: Long = 0L)
   /** GetResult implicit for fetching rPosts objects using plain SQL queries */
   implicit def GetResultrPosts(implicit e0: GR[Long], e1: GR[Int], e2: GR[Boolean], e3: GR[String], e4: GR[Option[Long]]): GR[rPosts] = GR{
     prs => import prs._
-    rPosts.tupled((<<[Long], <<[Int], <<[Long], <<[Long], <<[Boolean], <<[String], <<[String], <<[String], <<[String], <<[String], <<[String], <<[Long], <<[String], <<[String], <<[String], <<?[Long], <<[Long], <<[Int]))
+    rPosts.tupled((<<[Long], <<[Int], <<[Long], <<[Long], <<[Boolean], <<[String], <<[String], <<[String], <<[String], <<[String], <<[String], <<[Long], <<[String], <<[String], <<[String], <<?[Long], <<[Long], <<[Int], <<[Long]))
   }
   /** Table description of table posts. Objects of this class serve as prototypes for rows in queries. */
   class tPosts(_tableTag: Tag) extends profile.api.Table[rPosts](_tableTag, "posts") {
-    def * = (id, origin, topicId, postId, isMain, title, authorId, authorName, content, imgs, hestiaImgs, postTime, boardName, url, boardNameCn, quoteId, updateTime, state) <> (rPosts.tupled, rPosts.unapply)
+    def * = (id, origin, topicId, postId, isMain, title, authorId, authorName, content, imgs, hestiaImgs, postTime, boardName, url, boardNameCn, quoteId, updateTime, state, pid) <> (rPosts.tupled, rPosts.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(origin), Rep.Some(topicId), Rep.Some(postId), Rep.Some(isMain), Rep.Some(title), Rep.Some(authorId), Rep.Some(authorName), Rep.Some(content), Rep.Some(imgs), Rep.Some(hestiaImgs), Rep.Some(postTime), Rep.Some(boardName), Rep.Some(url), Rep.Some(boardNameCn), quoteId, Rep.Some(updateTime), Rep.Some(state)).shaped.<>({r=>import r._; _1.map(_=> rPosts.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get, _11.get, _12.get, _13.get, _14.get, _15.get, _16, _17.get, _18.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(origin), Rep.Some(topicId), Rep.Some(postId), Rep.Some(isMain), Rep.Some(title), Rep.Some(authorId), Rep.Some(authorName), Rep.Some(content), Rep.Some(imgs), Rep.Some(hestiaImgs), Rep.Some(postTime), Rep.Some(boardName), Rep.Some(url), Rep.Some(boardNameCn), quoteId, Rep.Some(updateTime), Rep.Some(state), Rep.Some(pid)).shaped.<>({r=>import r._; _1.map(_=> rPosts.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get, _11.get, _12.get, _13.get, _14.get, _15.get, _16, _17.get, _18.get, _19.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(bigserial), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -150,6 +151,8 @@ trait SlickTables {
     val updateTime: Rep[Long] = column[Long]("update_time")
     /** Database column state SqlType(int4), Default(0) */
     val state: Rep[Int] = column[Int]("state", O.Default(0))
+    /** Database column pid SqlType(int8), Default(0) */
+    val pid: Rep[Long] = column[Long]("pid", O.Default(0L))
   }
   /** Collection-like TableQuery object for table tPosts */
   lazy val tPosts = new TableQuery(tag => new tPosts(tag))
@@ -191,6 +194,32 @@ trait SlickTables {
   }
   /** Collection-like TableQuery object for table tPostSortReplyTime */
   lazy val tPostSortReplyTime = new TableQuery(tag => new tPostSortReplyTime(tag))
+
+  /** Entity class storing rows of table tSynData
+   *  @param id Database column id SqlType(bigserial), AutoInc, PrimaryKey
+   *  @param data Database column data SqlType(int8), Default(0)
+   *  @param note Database column note SqlType(varchar), Length(100,true), Default() */
+  final case class rSynData(id: Long, data: Long = 0L, note: String = "")
+  /** GetResult implicit for fetching rSynData objects using plain SQL queries */
+  implicit def GetResultrSynData(implicit e0: GR[Long], e1: GR[String]): GR[rSynData] = GR{
+    prs => import prs._
+    rSynData.tupled((<<[Long], <<[Long], <<[String]))
+  }
+  /** Table description of table syn_data. Objects of this class serve as prototypes for rows in queries. */
+  class tSynData(_tableTag: Tag) extends profile.api.Table[rSynData](_tableTag, "syn_data") {
+    def * = (id, data, note) <> (rSynData.tupled, rSynData.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (Rep.Some(id), Rep.Some(data), Rep.Some(note)).shaped.<>({r=>import r._; _1.map(_=> rSynData.tupled((_1.get, _2.get, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column id SqlType(bigserial), AutoInc, PrimaryKey */
+    val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
+    /** Database column data SqlType(int8), Default(0) */
+    val data: Rep[Long] = column[Long]("data", O.Default(0L))
+    /** Database column note SqlType(varchar), Length(100,true), Default() */
+    val note: Rep[String] = column[String]("note", O.Length(100,varying=true), O.Default(""))
+  }
+  /** Collection-like TableQuery object for table tSynData */
+  lazy val tSynData = new TableQuery(tag => new tSynData(tag))
 
   /** Entity class storing rows of table tUser
    *  @param id Database column id SqlType(bigserial), AutoInc, PrimaryKey

@@ -1,6 +1,7 @@
 package com.neo.sk.timeline.utils
 
 import com.neo.sk.timeline.common.AppSettings
+import com.neo.sk.timeline.ptcl.PostProtocol.OrderPostRsp
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
@@ -26,7 +27,7 @@ object SmallSpiderClient extends HttpUtil{
                         signature: String, data: String
                       )
 
-  case class UserRequest(
+/*  case class UserRequest(
                           userId: String,
                           onlyTopic: Int = 0, //1为主贴
                           page: Int = 1,
@@ -94,33 +95,8 @@ object SmallSpiderClient extends HttpUtil{
                          postId:Option[Long],
                          length:Option[Int],
                          contentType:String="text"
-                         )
-
-  case class OrderPostInfo(
-                          id:Long,
-                          boardName: String, //板块名称
-                          topicId: Long, //主贴话题id
-                          postId: Long, //帖子id
-                          quoteId: Long, //引文的帖子id
-                          title: String, //标题
-                          authorId: String, //作者id
-                          postTime: String, //发帖时间
-                          timestamp: Long, //发帖时间戳
-                          content: String, //正文
-                          quoteAuthor: String, //引文作者id
-                          quoteTitle: String, //引文标题
-                          quote: String, //引文内容
-                          ip: String, //ip
-                          img: List[String], //图片列表
-                          mainPost: Boolean,
-                          boardNameCn:String
-                          )
-
-  case class OrderPostRsp(
-                         posts:Seq[OrderPostInfo],
-                         errCode:Int,
-                         msg:String
-                         )
+                         )*/
+  
 
   case class PostsListRst(
                            id:Long,
@@ -128,7 +104,7 @@ object SmallSpiderClient extends HttpUtil{
                            contentType:String = "text"
                          )
 
-  def getUserPost(userId:String, page:Int, pageSize:Int = 30,onlyTopic:Int = 0) ={
+ /* def getUserPost(userId:String, page:Int, pageSize:Int = 30,onlyTopic:Int = 0) ={
 
     val url = basePath+"/smallspider/api/user"
     val sn = appId + System.currentTimeMillis().toString
@@ -228,10 +204,11 @@ object SmallSpiderClient extends HttpUtil{
         log.error(s"get Board posts $url failed:" + e)
         Left(e)
     }
-  }
+  }*/
+  
 
   def getSynPosts(id:Long,count:Int) ={
-    val url = basePath+"/smallspider/api/posts"
+    val url = basePath+"/smallspider/api/posts4Galaxy"
     val sn = appId + System.currentTimeMillis().toString
     val data = PostsListRst(id,count).asJson.noSpaces
     val (timestamp, nonce, signature) = SecureUtil.generateSignatureParameters(List(appId, sn,data), secureKey)
@@ -443,21 +420,12 @@ object SmallSpiderClient extends HttpUtil{
 
 
   def main(args: Array[String]): Unit = {
-    /*searchPosts(List(("FamilyLife", 1759732907), ("Love", 6080936))).map{
-      case Right(r)=>
-        println(r)
-
-      case Left(e)=>
-        println(e)
-    }
-
-    val a = " BUPT "
-    println(a.trim+"00")*/
-//    GetPostDetail("Smartisan",73480l,1,10).map({
-//      case Right(r)=>println(r)
-//      case Left(e)=>println(e)
-//    })
-
+   getSynPosts(1062890876l,300).map{r=>
+     r.map{ps=>
+       println(ps.size)
+       ps.map(t=>println(t.id))
+     }
+   }
     Thread.sleep(10000)
   }
 

@@ -19,7 +19,7 @@ object DistributeProtocol {
 
   case class DisCache(
                        newPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long,Option[AuthorInfo])]=mutable.HashMap(),
-                       newReplyPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long,Option[AuthorInfo])]=mutable.HashMap(),
+                       newReplyPost:mutable.HashMap[(Int,String,Long,Long),(Long,Long,Option[AuthorInfo])]=mutable.HashMap(),//_.4目前没有价值
                        followList:mutable.HashSet[Long]=mutable.HashSet(),
                        name:String,
                        variety:Int

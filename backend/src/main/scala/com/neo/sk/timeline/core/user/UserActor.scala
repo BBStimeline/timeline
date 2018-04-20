@@ -1,21 +1,19 @@
-package com.neo.sk.timeline.core
+package com.neo.sk.timeline.core.user
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
-import org.slf4j.LoggerFactory
-import akka.actor.typed.{ActorRef, Behavior}
-import com.neo.sk.timeline.models.SlickTables
-import com.neo.sk.timeline.models.dao.{FollowDAO, UserDAO}
-import com.neo.sk.timeline.ptcl.UserProtocol._
 import akka.actor.typed.scaladsl.AskPattern._
-
-import scala.concurrent.duration._
-import scala.collection.mutable
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
+import akka.actor.typed.{ActorRef, Behavior}
 import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
 import com.neo.sk.timeline.common.Constant.FeedType
-import com.neo.sk.timeline.core.UserManager.UserLogout
+import com.neo.sk.timeline.core.DistributeManager
+import com.neo.sk.timeline.models.dao.{FollowDAO, UserDAO}
 import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisType, FeedListInfo}
+import com.neo.sk.timeline.ptcl.UserProtocol._
+import org.slf4j.LoggerFactory
 
+import scala.collection.mutable
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 /**
   * User: sky
@@ -25,7 +23,7 @@ import scala.util.{Failure, Success}
 object UserActor {
   private val log = LoggerFactory.getLogger(this.getClass)
 
-  import com.neo.sk.timeline.core.UserManager._
+  import UserManager._
   trait Command
   case class TimeOut(msg: String) extends Command
   final case class SwitchBehavior(

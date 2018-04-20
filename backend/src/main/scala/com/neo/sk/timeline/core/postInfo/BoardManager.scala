@@ -1,16 +1,16 @@
-package com.neo.sk.timeline.core
+package com.neo.sk.timeline.core.postInfo
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
-import org.slf4j.LoggerFactory
 import akka.actor.typed.scaladsl.AskPattern._
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.neo.sk.timeline.Boot.{executor, timeout, scheduler}
+import com.neo.sk.timeline.Boot.{executor, scheduler, timeout}
+import com.neo.sk.timeline.core.postInfo.PostActor
 import com.neo.sk.timeline.ptcl.UserProtocol.UserFeedReq
-import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, UserFeedRsp}
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
+import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, UserFeedRsp}
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
 /**
   * User: sky
   * Date: 2018/4/14

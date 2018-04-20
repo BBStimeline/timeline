@@ -1,21 +1,14 @@
-package com.neo.sk.timeline.core
+package com.neo.sk.timeline.core.postInfo
 
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
-import org.slf4j.LoggerFactory
-import akka.actor.typed.{ActorRef, Behavior}
+import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicInfoReqMsg
 import com.neo.sk.timeline.models.SlickTables
-import com.neo.sk.timeline.models.dao.{FollowDAO, UserDAO}
-import akka.actor.typed.scaladsl.AskPattern._
-
-import scala.concurrent.duration._
-import scala.collection.mutable
-import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
-import com.neo.sk.timeline.common.Constant.FeedType
-import com.neo.sk.timeline.core.BoardManager.GetTopicInfoReqMsg
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
+import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.collection.mutable
+import scala.concurrent.duration._
 /**
   * User: sky
   * Date: 2018/4/15
