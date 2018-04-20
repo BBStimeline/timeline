@@ -1,57 +1,57 @@
 
 package com.neo.sk.timeline.front
 
-//import com.neo.sk.timeline.front.pages._
 import com.neo.sk.timeline.front.pages.{LoginPage, MainPage}
 import mhtml._
 import org.scalajs.dom
-import org.scalajs.dom.raw.Event
 
-import scala.xml.Node
+import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
+import scala.xml.{Elem}
+import scala.language.implicitConversions
 /**
-  * Created by thinker on 2017/11/14.
+  * Created by sky
   */
-trait Index {
-  def app: Node
-  def cancel: Unit = ()
-  val pageName = this.getClass.getSimpleName
-  val url = "#" + pageName
+trait Index extends Component{
+  val locationHashString: String
+}
+
+trait Component {
+  def render: Elem
+}
+
+object Component {
+  implicit def component2Element(comp: Component): Elem = comp.render
+}
+
+@JSExportTopLevel("frontend.Main")
+object Main {
+
+  @JSExport
+  def main(args: Array[String]): Unit = {
+    MainEnter.show()
+  }
 
 }
 
-object Main {
-  private val indexPage = Seq[Index](
-    LoginPage,
-    MainPage
-  )
 
-  def getActiveApp =
-    indexPage.find(_.url == dom.window.location.hash).getOrElse(indexPage.head)
+object MainEnter extends PageSwitcher {
 
-  val activeExample: Var[Index] = Var(getActiveApp)
-
-  dom.window.onhashchange = { _: Event =>
-    println("here change hash")
-    println(dom.window.location.hash)
-    if(dom.window.location.hash != "#LoginPage"){
-      dom.window.localStorage.setItem("current-hash",dom.window.location.hash)
-    }
-    activeExample.update { old =>
-      old.cancel
-      getActiveApp
-    }
+  val currentPage: Rx[Elem] = currentHashVar.map {
+    case Nil => LoginPage.render
+    case "LoginPage" :: Nil => LoginPage.render
+    case "MainPage" :: Nil => MainPage.render
+    case _ => <div>Error Page</div>
   }
 
-  val mainApp =
 
-      <div style="height: 100%; width: 100%; position: absolute;">
-        {activeExample.map(_.app)}
+
+  def show(): Cancelable = {
+    val page =
+      <div style="height: 100%;width: 100%;">
+        {currentPage}
       </div>
-
-
-
-  def main(args: Array[String]): Unit ={
-    mount(dom.document.body, mainApp)
+    switchPageByHash()
+    mount(dom.document.body, page)
   }
 
 }

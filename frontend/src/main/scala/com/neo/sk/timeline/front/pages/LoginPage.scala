@@ -14,7 +14,7 @@ import io.circe.parser._
 import io.circe.generic.auto._
 import io.circe.syntax._
 
-import scala.xml.Node
+import scala.xml.{Elem, Node}
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.neo.sk.timeline.shared.ptcl._
 /**
@@ -23,6 +23,7 @@ import com.neo.sk.timeline.shared.ptcl._
   * Time: 15:39
   */
 object LoginPage extends Index {
+  override val locationHashString="#/LoginPage"
 
   def login():Unit ={
     //只有这样才能获取到Unput中的值
@@ -168,7 +169,7 @@ object LoginPage extends Index {
   val w = dom.document.body.clientWidth
   val h = (dom.document.body.clientHeight - 280)/2
 
-  def app: xml.Node = {
+  override def render:Elem = {
     <div style="background:url(../static/img/back-1.png);height:100%" backgroundSize="100% 100%" width={w+"px"}>
       <div width="100%" height={h+"px"}></div>
       <div class="pure-u-1-8"></div>
