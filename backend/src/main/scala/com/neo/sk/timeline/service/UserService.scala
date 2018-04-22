@@ -20,8 +20,11 @@ import com.neo.sk.timeline.service.ServiceUtils.CommonRsp
 import com.neo.sk.timeline.service.SessionBase.UserSessionKey
 import com.neo.sk.timeline.shared.ptcl.UserProtocol._
 import com.neo.sk.timeline.utils.SecureUtil
-import com.neo.sk.timeline.Boot.{executor, scheduler, timeout, userManager}
+import com.neo.sk.timeline.Boot.{boardManager, executor, scheduler, timeout, userManager}
+import com.neo.sk.timeline.core.postInfo.BoardManager
+import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicList
 import com.neo.sk.timeline.core.user.UserManager
+import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.UserFeedRsp
 
 import scala.concurrent.duration._
 
@@ -50,6 +53,7 @@ trait UserService extends ServiceUtils with SessionBase{
                   if (t > 0l){
                     val (sessionKey,keyCode,signature)=SecureUtil.appSafety
                     val session = Map(
+                      SessionBase.SessionTypeKey -> UserSessionKey.SESSION_TYPE,
                       UserSessionKey.uid -> t.toString,
                       UserSessionKey.userId -> req.userId,
                       UserSessionKey.bbsId -> "guest",
@@ -94,6 +98,7 @@ trait UserService extends ServiceUtils with SessionBase{
             if(r.isEmpty) complete(CommonRsp(10001,"用户不存在或密码错误"))
             else {
               val session = Map(
+                SessionBase.SessionTypeKey -> UserSessionKey.SESSION_TYPE,
                 UserSessionKey.uid -> r.get.id.toString,
                 UserSessionKey.userId -> req.userId,
                 UserSessionKey.bbsId -> r.get.bbsId,
@@ -145,36 +150,39 @@ trait UserService extends ServiceUtils with SessionBase{
     }
   }
 
-//  private val getFeedFlow = (path("getFeedFlow") & get & pathEndOrSingleSlash) {
-//    UserAction{ u =>
-//      parameters(
-//        'sortType.as[Int],
-//        'lastItemTime.as[Long],
-//        'pageSize.as[Int]
-//      ) { case (sortType, lastItemTime, pageSize) =>
-//        dealFutureResult {
-//          val future: Future[Option[List[UserFeedReq]]] = userManager ? (GetUserFeed(u.uid, sortType, lastItemTime, pageSize, _))
-//          future.map {
-//            case Some(feeds) =>
+  private val getFeedFlow = (path("getFeedFlow") & get & pathEndOrSingleSlash) {
+    UserAction{ u =>
+      parameters(
+        'sortType.as[Int],
+        'lastItemTime.as[Long],
+        'pageSize.as[Int]
+      ) { case (sortType, lastItemTime, pageSize) =>
+        dealFutureResult {
+          val future: Future[Option[List[UserFeedReq]]] = userManager ? (GetUserFeed(u.uid, sortType, lastItemTime, pageSize, _))
+          future.map {
+            case Some(feeds) =>
+//              val futureTopic:Future[UserFeedRsp] = boardManager ? (GetTopicList(feeds,_))
 //              dealFutureResult {
-//
+//                futureTopic.map{topics=>
+//                  complete(topics)
+//                }
 //              }
-//
-//            case None =>
-//              complete(ErrorRsp(120007, "sortType error...."))
-//
-//          }.recover {
-//            case e: Exception =>
-//              log.info(s"postArt exception.." + e.getMessage)
-//              complete(ErrorRsp(120003, "网络异常,请稍后再试!"))
-//          }
-//        }
-//      }
-//    }
-//  }
+              complete(feeds)
+            case None =>
+              complete(ErrorRsp(120007, "sortType error...."))
+
+          }.recover {
+            case e: Exception =>
+              log.info(s"postArt exception.." + e.getMessage)
+              complete(ErrorRsp(120003, "网络异常,请稍后再试!"))
+          }
+        }
+      }
+    }
+  }
 
   val userRoutes: Route =
     pathPrefix("user") {
-      userIndex ~ userSign ~ userLogin ~ userLogout
+      userIndex ~ userSign ~ userLogin ~ userLogout ~ getFeedFlow
     }
 }

@@ -2,7 +2,7 @@ package com.neo.sk.timeline.core.user
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.neo.sk.timeline.ptcl.UserProtocol.{PostBaseInfo, UserFeedReq}
+import com.neo.sk.timeline.ptcl.UserProtocol.{AuthorInfo, PostBaseInfo, UserFeedReq}
 import org.slf4j.LoggerFactory
 /**
   * User: sky
@@ -32,6 +32,7 @@ object UserManager {
   final case class UserUnFollowUserMsg(uid: Long, followId:String,followName:String,origin:Int) extends Command
   final case class UserUnFollowBoardMsg(uid: Long, boardName: String, origin: Int) extends Command
   final case class UserUnFollowTopicMsg(uid: Long, post:PostBaseInfo) extends Command
+  final case class DisEvent(uid:Long,feedType:Int,post:(Int, String, Long, Long, Long,Long,Option[AuthorInfo]), isMain:Boolean) extends Command
 //
 //  final case class DeleteArt(uid: Long, boardName: String, postId: Long, replyTo:ActorRef[String]) extends Command
 //
@@ -82,6 +83,10 @@ object UserManager {
           Behaviors.same
 
         case msg:GetUserFeed=>
+          getUserActor(ctx,msg.uid) ! msg
+          Behaviors.same
+
+        case msg:DisEvent=>
           getUserActor(ctx,msg.uid) ! msg
           Behaviors.same
         case x=>

@@ -10,8 +10,8 @@ import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
 object UserFollowProtocol {
   case class AddFollowBoardReq(
                                 origin: Int, //数据来源，0:水木社区，1：水木plus自有版面
-  boardName: String,
-  boardTitle: String
+                                boardName: String,
+                                boardTitle: String
                               )
 
   case class AddFollowTopicReq(

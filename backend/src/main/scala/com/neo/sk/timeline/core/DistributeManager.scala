@@ -70,7 +70,7 @@ object DistributeManager {
   }
 
   private def getDistributeActor(ctx: ActorContext[Command], name:String, variety:Int,param:Option[DisType]) = {
-    val childName = s"distributeActor--$variety--$name"
+    val childName = s"distributeActor--$name"
     ctx.child(childName).getOrElse {
       val actor=ctx.spawn(DistributeActor.init(name,variety,param), childName)
       ctx.watchWith(actor,ChildDead(childName,variety,actor))

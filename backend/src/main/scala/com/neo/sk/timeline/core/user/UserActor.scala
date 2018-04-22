@@ -4,8 +4,10 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
+import com.neo.sk.timeline.common.AppSettings
 import com.neo.sk.timeline.common.Constant.FeedType
 import com.neo.sk.timeline.core.DistributeManager
+import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.models.dao.{FollowDAO, UserDAO}
 import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisType, FeedListInfo}
 import com.neo.sk.timeline.ptcl.UserProtocol._
@@ -39,10 +41,9 @@ object UserActor {
   private final case object BehaviorChangeKey
   private final case object CleanFeedKey
 
-  private val maxFeedLength = 50
-  private val cleanFeedTime = 20.minutes
+  private val maxFeedLength = AppSettings.feedCnt
+  private val cleanFeedTime = 5.minutes
   private val defaultUser=AuthorInfo("","",0)
-
 
   def init(uid: Long): Behavior[Command] = {
     Behaviors.setup[Command] { ctx =>
@@ -57,30 +58,38 @@ object UserActor {
           val favBoard = new mutable.HashSet[(Int, String)]()
           val favUser = new mutable.HashSet[(Int,String)]()
           val favTopic = new mutable.HashSet[(Int, String, Long)]()
-          val newFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long,Option[AuthorInfo])]()
-          val newReplyFeed = new mutable.HashMap[(Int, PostBaseInfo), (Long,Long,Option[AuthorInfo])]()
+          val newFeed = new mutable.HashMap[(Int, Int,String,Long,Long), (Long,Long,Option[AuthorInfo])]()
+          val newReplyFeed = new mutable.HashMap[(Int, Int,String,Long,Long), (Long,Long,Option[AuthorInfo])]()
 
           if (feed.nonEmpty) {
             feed.filter(_.postTime != 0).sortBy(_.postTime).reverse.take(maxFeedLength).foreach { f =>
-              newFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname, f.topicId,f.postTime)), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(""),f.authorName.getOrElse(""),f.origin))))
+              newFeed.put((f.feedType, f.origin, f.boardname, f.topicId,f.postTime), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(""),f.authorName.getOrElse(""),f.origin))))
             }
             feed.filter(_.lastReplyTime != 0).sortBy(_.lastReplyTime).reverse.take(maxFeedLength).foreach { f =>
-              newReplyFeed.put((f.feedType, PostBaseInfo(f.origin, f.boardname,f.topicId, f.postTime)), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(""),f.authorName.getOrElse(""),f.origin))))
+              newReplyFeed.put((f.feedType,f.origin, f.boardname,f.topicId, f.postTime), (f.postId,f.lastReplyTime,if(f.feedType!=FeedType.USER) None else Some(AuthorInfo(f.authorId.getOrElse(""),f.authorName.getOrElse(""),f.origin))))
             }
           }
-          follows._1.map(r=>
-            favBoard.add(r.origin,r.boardName)
-          )
-          follows._2.map(r=>
-            favUser.add(r.origin,r.followId)
-          )
-          follows._3.map(r=>
-            favTopic.add(r.origin,r.boardName,r.topicId)
-          )
+          follows._1.map { r =>
+            val name=r.origin+"-"+r.boardName
+            val param=DisType(board=Some(r.boardName),origin = r.origin)
+            distributeManager ! DistributeManager.NotifyFollowObject(name,FeedType.BOARD,uid,param)
+            favBoard.add(r.origin, r.boardName)
+          }
+          follows._2.map { r =>
+            val name=r.origin+"-"+r.followId
+            val param=DisType(userId = Some(r.followId),userName = Some(r.followName),origin =r.origin)
+            distributeManager ! DistributeManager.NotifyFollowObject(name,FeedType.USER,uid,param)
+            favUser.add(r.origin, r.followId)
+          }
+          follows._3.map { r =>
+            val name=r.origin+"-"+r.boardName+"-"+r.topicId
+            val param=DisType(board=Some(r.boardName),topicId = Some(r.topicId),origin = r.origin)
+            distributeManager ! DistributeManager.NotifyFollowObject(name,FeedType.TOPIC,uid,param)
+            favTopic.add(r.origin, r.boardName, r.topicId)
+          }
           userInfoOpt match {
             case Some(u) =>
               timer.startPeriodicTimer(CleanFeedKey, CleanFeed, cleanFeedTime)
-              ctx.self ! RefreshFeed(None, None, None)
               ctx.self ! SwitchBehavior("idle", idle(
                 UserActorInfo(uid, u.userId, u.bbsId,u.headImg,
                   favBoard,
@@ -104,6 +113,15 @@ object UserActor {
           replyTo ! "OK"
           Behaviors.stopped
 
+        case DisEvent(_,feedType,event,isMain)=>
+          log.info(s"distribute send new post ${event._2+"-"+event._5} to user-${user.uid}")
+          if(isMain){
+            user.newFeed.put((feedType,event._1, event._2, event._3, event._4),(event._5, event._6, event._7))
+          }else{
+            user.newReplyFeed.put((feedType,event._1, event._2, event._3, event._4),(event._5, event._6, event._7))
+          }
+          Behaviors.same
+
         case UserFollowBoardMsg(_,boardName,origin)=>
           user.favBoards.add(origin, boardName)
           val name=origin+"-"+boardName
@@ -112,13 +130,13 @@ object UserActor {
           val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(FeedType.BOARD,name,_))
           future.map { data =>
             data.newPosts.foreach { event =>
-              if (!user.newFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
-                user.newFeed.put((FeedType.BOARD, PostBaseInfo(event._1, event._2, event._3, event._4)),
+              if (!user.newFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                user.newFeed.put((FeedType.BOARD,event._1, event._2, event._3, event._4),
                   (event._5, event._6, event._7))
               }
               data.newReplyPosts.foreach { event =>
-                if (!user.newReplyFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
-                  user.newReplyFeed.put((FeedType.BOARD, PostBaseInfo(event._1, event._2, event._3, event._4)),
+                if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                  user.newReplyFeed.put((FeedType.BOARD,event._1, event._2, event._3, event._4),
                     (event._5, event._6, event._7))
                 }
               }
@@ -134,13 +152,13 @@ object UserActor {
           val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(FeedType.BOARD,name,_))
           future.map { data =>
             data.newPosts.foreach { event =>
-              if (!user.newFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
-                user.newFeed.put((FeedType.TOPIC, PostBaseInfo(event._1, event._2, event._3, event._4)),
+              if (!user.newFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                user.newFeed.put((FeedType.TOPIC,event._1, event._2, event._3, event._4),
                   (event._5, event._6, event._7))
               }
               data.newReplyPosts.foreach { event =>
-                if (!user.newReplyFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
-                  user.newReplyFeed.put((FeedType.TOPIC, PostBaseInfo(event._1, event._2, event._3, event._4)),
+                if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                  user.newReplyFeed.put((FeedType.TOPIC,event._1, event._2, event._3, event._4),
                     (event._5, event._6, event._7))
                 }
               }
@@ -156,13 +174,13 @@ object UserActor {
           val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(FeedType.BOARD,name,_))
           future.map { data =>
             data.newPosts.foreach { event =>
-              if (!user.newFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
-                user.newFeed.put((FeedType.USER, PostBaseInfo(event._1, event._2, event._3, event._4)),
+              if (!user.newFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                user.newFeed.put((FeedType.USER,event._1, event._2, event._3, event._4),
                   (event._5, event._6, event._7))
               }
               data.newReplyPosts.foreach { event =>
-                if (!user.newReplyFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
-                  user.newReplyFeed.put((FeedType.USER, PostBaseInfo(event._1, event._2, event._3, event._4)),
+                if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                  user.newReplyFeed.put((FeedType.USER, event._1, event._2, event._3, event._4),
                     (event._5, event._6, event._7))
                 }
               }
@@ -174,10 +192,10 @@ object UserActor {
           user.favBoards.remove(msg.origin,msg.boardName)
           val name=msg.origin+"-"+msg.boardName
           distributeManager ! DistributeManager.QuitFollowObject(name,FeedType.BOARD,user.uid)
-          user.newFeed.filter(r=> r._1._1 == FeedType.BOARD && r._1._2.origin == msg.origin && r._1._2.boardName == msg.boardName).map{ r=>
+          user.newFeed.filter(r=> r._1._1 == FeedType.BOARD && r._1._2 == msg.origin && r._1._3 == msg.boardName).map{ r=>
             user.newFeed.remove(r._1)
           }
-          user.newReplyFeed.filter(r=> r._1._1 == FeedType.BOARD && r._1._2.origin == msg.origin && r._1._2.boardName == msg.boardName).map{ r=>
+          user.newReplyFeed.filter(r=> r._1._1 == FeedType.BOARD && r._1._2 == msg.origin && r._1._3 == msg.boardName).map{ r=>
             user.newReplyFeed.remove(r._1)
           }
           Behaviors.same
@@ -186,10 +204,10 @@ object UserActor {
           user.favTopic.remove(msg.post.origin,msg.post.boardName,msg.post.topicId)
           val name=msg.post.origin+"-"+msg.post.boardName+"-"+msg.post.topicId
           distributeManager ! DistributeManager.QuitFollowObject(name,FeedType.TOPIC,user.uid)
-          user.newFeed.filter(r=> r._1._1 == FeedType.TOPIC && r._1._2.origin == msg.post.origin && r._1._2.boardName == msg.post.boardName && r._1._2.topicId == msg.post.topicId).map{ r=>
+          user.newFeed.filter(r=> r._1._1 == FeedType.TOPIC && r._1._2 == msg.post.origin && r._1._3 == msg.post.boardName && r._1._4 == msg.post.topicId).map{ r=>
             user.newFeed.remove(r._1)
           }
-          user.newReplyFeed.filter(r=> r._1._1 == FeedType.TOPIC && r._1._2.origin == msg.post.origin && r._1._2.boardName == msg.post.boardName && r._1._2.topicId == msg.post.topicId).map{ r=>
+          user.newReplyFeed.filter(r=> r._1._1 == FeedType.TOPIC && r._1._2 == msg.post.origin && r._1._3 == msg.post.boardName && r._1._4 == msg.post.topicId).map{ r=>
             user.newReplyFeed.remove(r._1)
           }
           Behaviors.same
@@ -198,10 +216,10 @@ object UserActor {
           user.favUsers.remove(msg.origin,msg.followId)
           val name=msg.origin+"-"+msg.followId
           distributeManager ! DistributeManager.QuitFollowObject(name,FeedType.USER,user.uid)
-          user.newFeed.filter(r=> r._1._1 == FeedType.USER && r._1._2.origin == msg.origin && r._2._3.getOrElse(defaultUser).origin==msg.origin&&r._2._3.getOrElse(defaultUser).authorId==msg.followId).map{ r=>
+          user.newFeed.filter(r=> r._1._1 == FeedType.USER && r._1._2 == msg.origin && r._2._3.getOrElse(defaultUser).origin==msg.origin&&r._2._3.getOrElse(defaultUser).authorId==msg.followId).map{ r=>
             user.newFeed.remove(r._1)
           }
-          user.newReplyFeed.filter(r=> r._1._1 == FeedType.USER && r._1._2.origin == msg.origin && r._2._3.getOrElse(defaultUser).origin==msg.origin&&r._2._3.getOrElse(defaultUser).authorId==msg.followId).map{ r=>
+          user.newReplyFeed.filter(r=> r._1._1 == FeedType.USER && r._1._2 == msg.origin && r._2._3.getOrElse(defaultUser).origin==msg.origin&&r._2._3.getOrElse(defaultUser).authorId==msg.followId).map{ r=>
             user.newReplyFeed.remove(r._1)
           }
           Behaviors.same
@@ -209,16 +227,16 @@ object UserActor {
         case msg:GetUserFeed=>
           msg.sortType match {
             case 1 => //根据创建时间
-              if (user.newFeed.isEmpty || msg.lastItemTime > user.newFeed.map(_._2._1).max) {
+              if (user.newFeed.isEmpty || msg.lastItemTime > user.newFeed.map(_._1._5).max) {
                 ctx.self ! RefreshFeed(Some(msg.sortType), Some(msg.pageSize), Some(msg.replyTo))
               } else {
-                msg.replyTo ! Some(user.newFeed.filter(_._2._1 < msg.lastItemTime).map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1,i._1._2.postTime)).toList.sortBy(_.time).reverse.take(msg.pageSize))
+                msg.replyTo ! Some(user.newFeed.filter(_._1._5 < msg.lastItemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize))
               }
             case 2 => //根据最新回复时间
-              if (user.newReplyFeed.isEmpty || msg.lastItemTime > user.newReplyFeed.map(_._2._1).max) {
+              if (user.newReplyFeed.isEmpty || msg.lastItemTime > user.newReplyFeed.map(_._2._2).max) {
                 ctx.self ! RefreshFeed(Some(msg.sortType), Some(msg.pageSize), Some(msg.replyTo))
               } else {
-                msg.replyTo ! Some(user.newReplyFeed.filter(_._2._1 < msg.lastItemTime).map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize))
+                msg.replyTo ! Some(user.newReplyFeed.filter(_._2._2 < msg.lastItemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize))
               }
 
             case x@_ =>
@@ -228,19 +246,20 @@ object UserActor {
           Behaviors.same
 
         case msg:RefreshFeed=>
+          log.info("!!!!!!!!---------------------1")
           val targetList = user.favBoards.map(i => (FeedType.BOARD, i._1 + "-" + i._2)).toList ::: user.favUsers.map(i => (FeedType.USER, i._1 +"-"+i._2)).toList:::user.favTopic.map(i=>(FeedType.TOPIC,i._1+"-"+i._2+"-"+i._3)).toList
           Future.sequence{
             targetList.map{ i =>
               val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(i._1, i._2, _))
               future.map { data =>
                 data.newPosts.foreach { event =>
-                  if (!user.newFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
-                    user.newFeed.put((i._1, PostBaseInfo(event._1, event._2, event._3, event._4)),
+                  if (!user.newFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                    user.newFeed.put((i._1,event._1, event._2, event._3, event._4),
                       (event._5, event._6, event._7))
                 }
                 data.newReplyPosts.foreach { event =>
-                  if(!user.newReplyFeed.exists(_._1._2 == PostBaseInfo(event._1, event._2, event._3, event._4))) {
-                    user.newReplyFeed.put((i._1, PostBaseInfo(event._1, event._2, event._3,event._4)),
+                  if(!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                    user.newReplyFeed.put((i._1,event._1, event._2, event._3,event._4),
                       (event._5, event._6, event._7))
                   }
                 }
@@ -251,9 +270,9 @@ object UserActor {
               msg.sortType match {
                 case Some(sortType) =>
                   if (sortType == 1)
-                    msg.replyTo.get ! Some(user.newFeed.map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1,i._1._2.postTime)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
+                    msg.replyTo.get ! Some(user.newFeed.map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
                   else
-                    msg.replyTo.get ! Some(user.newReplyFeed.map(i => UserFeedReq(i._1._2.origin,i._1._2.boardName,i._1._2.topicId,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
+                    msg.replyTo.get ! Some(user.newReplyFeed.map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
                 case None => //
               }
             case Failure(_) =>
@@ -262,14 +281,20 @@ object UserActor {
           Behaviors.same
 
         case CleanFeed =>
-//          val newFeeds = user.newFeed.map { i =>
-//            SlickTables.rUserFeed(-1l, user.uid, i._1._2.origin, i._1._2.boardName, i._1._2.postId, i._2._1,
-//              0l, i._2._2.authorId, i._2._2.authorType, i._2._2.nickname, i._1._1)
-//          }.toList ::: user.newReplyFeed.map { i =>
-//            SlickTables.rUserFeed(-1l, user.uid, i._1._2.origin, i._1._2.boardName, i._1._2.postId, 0l,
-//              i._2._1, i._2._2.authorId, i._2._2.authorType, i._2._2.nickname, i._1._1)
-//          }.toList
-//          UserDAO.cleanFeed(user.uid, newFeeds)
+          val time=System.currentTimeMillis()
+          val newFeeds=user.newFeed.toList.sortBy(_._1._5).reverse.take(maxFeedLength)
+          val newReplyFeed=user.newReplyFeed.toList.sortBy(_._2._2).reverse.take(maxFeedLength)
+          user.newFeed.clear()
+          user.newReplyFeed.clear()
+          newFeeds.foreach{r=>
+            user.newFeed.put(r._1,r._2)
+          }
+          newReplyFeed.foreach{r=>
+            user.newReplyFeed.put(r._1,r._2)
+          }
+          val feedList=(newFeeds:::newReplyFeed).map(r=>SlickTables.rUserFeed(0l,user.uid,r._1._2,r._1._3,r._1._4,r._2._1,r._1._5,r._2._2,r._1._1,getUserInfo(r._2._3)._1,getUserInfo(r._2._3)._2))
+          log.info(s"user-${user.uid} feedList cost ${System.currentTimeMillis()-time}")
+          UserDAO.cleanFeed(user.uid, feedList)
           Behaviors.same
 
         case x =>
@@ -311,4 +336,7 @@ object UserActor {
     stashBuffer.unstashAll(ctx, behavior)
   }
 
+  private def getUserInfo(option: Option[AuthorInfo])={
+    if(option.isEmpty) (None,None) else (Some(option.get.authorId),Some(option.get.authorName))
+  }
 }

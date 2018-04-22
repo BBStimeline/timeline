@@ -29,4 +29,5 @@ object DistributeProtocol {
                            newPosts: List[(Int, String, Long, Long, Long,Long,Option[AuthorInfo])],  //origin, boardName, topicId,postTime, postId, replyPostTime
                            newReplyPosts: List[(Int, String, Long, Long ,Long,Long,Option[AuthorInfo])]
                          )
+
 }
