@@ -4,10 +4,12 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
 import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicInfoReqMsg
 import com.neo.sk.timeline.models.SlickTables
-import com.neo.sk.timeline.models.dao.PostDAO
+import com.neo.sk.timeline.models.dao.{PostDAO, TopicDAO}
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
 import org.slf4j.LoggerFactory
-import com.neo.sk.timeline.Boot.{executor}
+import com.neo.sk.timeline.Boot.executor
+import com.neo.sk.timeline.core.postInfo.BoardActor.InsertPost
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 /**
@@ -49,17 +51,18 @@ object PostActor {
         log.debug(s"${ctx.self.path} topic=${origin+"-"+boardName+"-"+topicId} is starting...")
         implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
         Behaviors.withTimers[Command]{ implicit timer =>
-          PostDAO.getPostsByBoardId(origin,boardName,topicId).map{ps=>
-            val topicInfo=new mutable.HashMap[Long,SlickTables.rPosts]()
-            ps.map(p=>topicInfo.put(p.postId,p))
-            ctx.self ! SwitchBehavior("idle",idle(topicInfo))
+          val topicInfo=new mutable.HashMap[Long,SlickTables.rPosts]()
+          TopicDAO.getPostById(origin,boardName,topicId).foreach{r=>
+            ctx.self ! SwitchBehavior("idle",idle(topicInfo,r))
           }
           switchBehavior(ctx,"busy",busy(),InitTime,TimeOut("init"))
         }
     }
   }
 
-  private def idle(topicInfo:mutable.HashMap[Long,SlickTables.rPosts]=mutable.HashMap())
+  private def idle(topicInfo:mutable.HashMap[Long,SlickTables.rPosts]=mutable.HashMap(),
+                   topicSnap:Option[SlickTables.rTopicSnapshot]
+                  )
                   (
                     implicit stashBuffer:StashBuffer[Command],
                     timer:TimerScheduler[Command]
@@ -76,6 +79,10 @@ object PostActor {
             msg.replyTo ! None
             Behaviors.stopped
           }
+
+        case msg:InsertPost=>
+
+          Behaviors.same
 
         case x=>
           log.warn(s"unknown msg: $x")

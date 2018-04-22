@@ -14,20 +14,21 @@ import slick.dbio.DBIOAction
   * Date: 2018/4/12
   * Time: 11:09
   */
-object PostSortDAO {
-  def insertOrUpdateReplySort(a:SlickTables.rPostSortReplyTime) = {
-    db.run(tPostSortReplyTime.insertOrUpdate(a))
+object TopicDAO {
+  def insertOrUpdateTopicSnap(a:SlickTables.rTopicSnapshot) = {
+    db.run(tTopicSnapshot.insertOrUpdate(a))
   }
 
   def getPostListByPostTime(board:String, origin:Int, num:Int)={
-    db.run(tPostSortReplyTime.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.postTime.desc).take(num).result)
+    db.run(tTopicSnapshot.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.postTime.desc).take(num).result)
   }
 
   def getPostListByReplyTime(board:String, origin:Int, num:Int)={
-    db.run(tPostSortReplyTime.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.replyTime.desc).take(num).result)
+    db.run(tTopicSnapshot.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.lastReplyTime.desc).take(num).result)
   }
 
   def getPostById(origin:Int,board:String,topicId:Long)={
-    db.run(tPostSortReplyTime.filter(r=>r.origin===origin&&r.boardName===board&&r.topicId===topicId).result.headOption)
+    db.run(tTopicSnapshot.filter(r=>r.origin===origin&&r.boardName===board&&r.topicId===topicId).result.headOption)
   }
+
 }

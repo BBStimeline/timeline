@@ -27,7 +27,7 @@ object BoardActor {
                                    timeOut: TimeOut = TimeOut("busy time error")
                                  ) extends Command
   /**消息配置*/
-  case class InsertPost(post:rPosts) extends Command
+  case class InsertPost(post:rPosts) extends Command with PostActor.Command
 
 
   /**基础配置*/
@@ -68,6 +68,7 @@ object BoardActor {
           if(post.isMain){
             postNum+=1
           }
+          getPost(ctx,post.origin,post.boardName,post.topicId) ! InsertPost(post)
           Behaviors.same
         case x=>
           log.warn(s"unknown msg: $x")
