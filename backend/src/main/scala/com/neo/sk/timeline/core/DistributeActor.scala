@@ -3,7 +3,7 @@ package com.neo.sk.timeline.core
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
 import org.slf4j.LoggerFactory
 import akka.actor.typed.{ActorRef, Behavior}
-import com.neo.sk.timeline.models.dao.{FollowDAO, PostDAO, PostSortDAO}
+import com.neo.sk.timeline.models.dao.{FollowDAO, PostDAO, TopicDAO}
 import com.neo.sk.timeline.ptcl.UserProtocol._
 
 import scala.concurrent.duration._
@@ -53,14 +53,14 @@ object DistributeActor {
           val board=param.board.get
           val origin=param.origin
           for{
-            postList<-PostSortDAO.getPostListByPostTime(board,origin,boardBatch)
-            replyPostList<-PostSortDAO.getPostListByReplyTime(board,origin,boardBatch)
+            postList<-TopicDAO.getPostListByPostTime(board,origin,boardBatch)
+            replyPostList<-TopicDAO.getPostListByReplyTime(board,origin,boardBatch)
           }yield {
             postList.map(p=>
               newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,0l,None))
             )
             replyPostList.map(p=>
-              newReplyPost.put((p.origin,p.boardName,p.topicId,0l),(p.postId,p.replyTime,None))
+              newReplyPost.put((p.origin,p.boardName,p.topicId,0l),(p.lastPostId,p.lastReplyTime,None))
             )
             ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
@@ -88,10 +88,10 @@ object DistributeActor {
           val board=param.board.get
           val topicId=param.topicId.get
           val origin=param.origin
-          PostSortDAO.getPostById(origin,board,topicId).map{
+          TopicDAO.getPostById(origin,board,topicId).map{
             case Some(p)=>
               newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,0l,None))
-              newReplyPost.put((p.origin,p.boardName,p.topicId,0l),(p.postId,p.replyTime,None))
+              newReplyPost.put((p.origin,p.boardName,p.topicId,0l),(p.lastPostId,p.lastReplyTime,None))
               ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
         }

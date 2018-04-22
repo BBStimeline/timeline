@@ -85,21 +85,24 @@ CREATE TABLE public.user_feed (
 );
 CREATE INDEX user_feed_user_id_idx ON user_feed(user_id);
 
---回复时间排序表
-CREATE TABLE post_sort_reply_time(
-  origin        INT NOT NULL DEFAULT 0,--板块源
+--帖子快照
+CREATE TABLE topic_snapshot(
+  origin    INTEGER NOT NULL,--板块源
   board_name     VARCHAR(50)            NOT NULL,
   topic_id      BIGINT       NOT NULL,
-  post_id       BIGINT       NOT NULL,
-  post_time     BIGINT       NOT NULL ,
-  author_id    BIGINT NOT NULL DEFAULT 0,
-  author_name  VARCHAR(100) NOT NULL, --水木id或者unionid
-  reply_time    BIGINT NOT NULL DEFAULT 0,
+  last_post_id       BIGINT       NOT NULL,
+  last_reply_author VARCHAR(64) NOT NULL ,
+  last_reply_time BIGINT NOT NULL ,
+  vote_up_num   int NOT NULL DEFAULT 0,
+  vote_down_num   int NOT NULL DEFAULT 0,
+  reply_author_num int NOT NULL DEFAULT 0,
+  reply_post_num INT NOT NULL DEFAULT 0,
+  visit_num int NOT NULL DEFAULT 0,
+  post_time BIGINT DEFAULT 0 NOT NULL,
   PRIMARY KEY (origin,board_name,topic_id)
 );
-CREATE index boardName_isMain_replyTime_replyIndex ON post_sort_reply_time(origin,board_name,reply_time desc);
-CREATE index isMain_replyTime_replyIndex ON post_sort_reply_time(reply_time desc);
-CREATE index replyTime_replyIndex ON post_sort_reply_time(reply_time desc);
+CREATE index boardName_replyTime_replyIndex ON topic_snapshot(origin,board_name,last_reply_time desc);
+CREATE index replyTime_replyIndex ON topic_snapshot(last_reply_time desc);
 
 --用户关注用户
 CREATE TABLE public.user_follow_user(

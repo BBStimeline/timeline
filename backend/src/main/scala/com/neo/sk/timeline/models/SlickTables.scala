@@ -15,7 +15,7 @@ trait SlickTables {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(tBbsUser.schema, tBoard.schema, tPosts.schema, tPostSortReplyTime.schema, tSynData.schema, tUser.schema, tUserFeed.schema, tUserFollowBoard.schema, tUserFollowTopic.schema, tUserFollowUser.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(tBbsUser.schema, tBoard.schema, tPosts.schema, tSynData.schema, tTopicSnapshot.schema, tUser.schema, tUserFeed.schema, tUserFollowBoard.schema, tUserFollowTopic.schema, tUserFollowUser.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -97,7 +97,7 @@ trait SlickTables {
    *  @param isMain Database column is_main SqlType(bool)
    *  @param title Database column title SqlType(varchar), Length(127,true)
    *  @param authorId Database column author_id SqlType(varchar), Length(64,true), Default()
-   *  @param authorName Database column author_name SqlType(varchar), Length(31,true)
+   *  @param authorName Database column author_name SqlType(varchar), Length(64,true)
    *  @param content Database column content SqlType(text)
    *  @param imgs Database column imgs SqlType(text)
    *  @param hestiaImgs Database column hestia_imgs SqlType(text)
@@ -135,8 +135,8 @@ trait SlickTables {
     val title: Rep[String] = column[String]("title", O.Length(127,varying=true))
     /** Database column author_id SqlType(varchar), Length(64,true), Default() */
     val authorId: Rep[String] = column[String]("author_id", O.Length(64,varying=true), O.Default(""))
-    /** Database column author_name SqlType(varchar), Length(31,true) */
-    val authorName: Rep[String] = column[String]("author_name", O.Length(31,varying=true))
+    /** Database column author_name SqlType(varchar), Length(64,true) */
+    val authorName: Rep[String] = column[String]("author_name", O.Length(64,varying=true))
     /** Database column content SqlType(text) */
     val content: Rep[String] = column[String]("content")
     /** Database column imgs SqlType(text) */
@@ -163,44 +163,6 @@ trait SlickTables {
   /** Collection-like TableQuery object for table tPosts */
   lazy val tPosts = new TableQuery(tag => new tPosts(tag))
 
-  /** Entity class storing rows of table tPostSortReplyTime
-   *  @param origin Database column origin SqlType(int4), Default(0)
-   *  @param boardName Database column board_name SqlType(varchar), Length(50,true)
-   *  @param topicId Database column topic_id SqlType(int8)
-   *  @param postId Database column post_id SqlType(int8)
-   *  @param postTime Database column post_time SqlType(int8)
-   *  @param replyTime Database column reply_time SqlType(int8), Default(0) */
-  final case class rPostSortReplyTime(origin: Int = 0, boardName: String, topicId: Long, postId: Long, postTime: Long, replyTime: Long = 0L)
-  /** GetResult implicit for fetching rPostSortReplyTime objects using plain SQL queries */
-  implicit def GetResultrPostSortReplyTime(implicit e0: GR[Int], e1: GR[String], e2: GR[Long]): GR[rPostSortReplyTime] = GR{
-    prs => import prs._
-    rPostSortReplyTime.tupled((<<[Int], <<[String], <<[Long], <<[Long], <<[Long], <<[Long]))
-  }
-  /** Table description of table post_sort_reply_time. Objects of this class serve as prototypes for rows in queries. */
-  class tPostSortReplyTime(_tableTag: Tag) extends profile.api.Table[rPostSortReplyTime](_tableTag, "post_sort_reply_time") {
-    def * = (origin, boardName, topicId, postId, postTime, replyTime) <> (rPostSortReplyTime.tupled, rPostSortReplyTime.unapply)
-    /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(origin), Rep.Some(boardName), Rep.Some(topicId), Rep.Some(postId), Rep.Some(postTime), Rep.Some(replyTime)).shaped.<>({r=>import r._; _1.map(_=> rPostSortReplyTime.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
-
-    /** Database column origin SqlType(int4), Default(0) */
-    val origin: Rep[Int] = column[Int]("origin", O.Default(0))
-    /** Database column board_name SqlType(varchar), Length(50,true) */
-    val boardName: Rep[String] = column[String]("board_name", O.Length(50,varying=true))
-    /** Database column topic_id SqlType(int8) */
-    val topicId: Rep[Long] = column[Long]("topic_id")
-    /** Database column post_id SqlType(int8) */
-    val postId: Rep[Long] = column[Long]("post_id")
-    /** Database column post_time SqlType(int8) */
-    val postTime: Rep[Long] = column[Long]("post_time")
-    /** Database column reply_time SqlType(int8), Default(0) */
-    val replyTime: Rep[Long] = column[Long]("reply_time", O.Default(0L))
-
-    /** Primary key of tPostSortReplyTime (database name post_sort_reply_time_pkey) */
-    val pk = primaryKey("post_sort_reply_time_pkey", (origin, boardName, topicId))
-  }
-  /** Collection-like TableQuery object for table tPostSortReplyTime */
-  lazy val tPostSortReplyTime = new TableQuery(tag => new tPostSortReplyTime(tag))
-
   /** Entity class storing rows of table tSynData
    *  @param id Database column id SqlType(bigserial), AutoInc, PrimaryKey
    *  @param data Database column data SqlType(int8), Default(0)
@@ -226,6 +188,62 @@ trait SlickTables {
   }
   /** Collection-like TableQuery object for table tSynData */
   lazy val tSynData = new TableQuery(tag => new tSynData(tag))
+
+  /** Entity class storing rows of table tTopicSnapshot
+   *  @param origin Database column origin SqlType(int4)
+   *  @param boardName Database column board_name SqlType(varchar), Length(50,true)
+   *  @param topicId Database column topic_id SqlType(int8)
+   *  @param lastPostId Database column last_post_id SqlType(int8)
+   *  @param lastReplyAuthor Database column last_reply_author SqlType(varchar), Length(64,true)
+   *  @param lastReplyTime Database column last_reply_time SqlType(int8)
+   *  @param voteUpNum Database column vote_up_num SqlType(int4), Default(0)
+   *  @param voteDownNum Database column vote_down_num SqlType(int4), Default(0)
+   *  @param replyAuthorNum Database column reply_author_num SqlType(int4), Default(0)
+   *  @param replyPostNum Database column reply_post_num SqlType(int4), Default(0)
+   *  @param visitNum Database column visit_num SqlType(int4), Default(0)
+   *  @param postTime Database column post_time SqlType(int8), Default(0) */
+  final case class rTopicSnapshot(origin: Int, boardName: String, topicId: Long, lastPostId: Long, lastReplyAuthor: String, lastReplyTime: Long, voteUpNum: Int = 0, voteDownNum: Int = 0, replyAuthorNum: Int = 0, replyPostNum: Int = 0, visitNum: Int = 0, postTime: Long = 0L)
+  /** GetResult implicit for fetching rTopicSnapshot objects using plain SQL queries */
+  implicit def GetResultrTopicSnapshot(implicit e0: GR[Int], e1: GR[String], e2: GR[Long]): GR[rTopicSnapshot] = GR{
+    prs => import prs._
+    rTopicSnapshot.tupled((<<[Int], <<[String], <<[Long], <<[Long], <<[String], <<[Long], <<[Int], <<[Int], <<[Int], <<[Int], <<[Int], <<[Long]))
+  }
+  /** Table description of table topic_snapshot. Objects of this class serve as prototypes for rows in queries. */
+  class tTopicSnapshot(_tableTag: Tag) extends profile.api.Table[rTopicSnapshot](_tableTag, "topic_snapshot") {
+    def * = (origin, boardName, topicId, lastPostId, lastReplyAuthor, lastReplyTime, voteUpNum, voteDownNum, replyAuthorNum, replyPostNum, visitNum, postTime) <> (rTopicSnapshot.tupled, rTopicSnapshot.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (Rep.Some(origin), Rep.Some(boardName), Rep.Some(topicId), Rep.Some(lastPostId), Rep.Some(lastReplyAuthor), Rep.Some(lastReplyTime), Rep.Some(voteUpNum), Rep.Some(voteDownNum), Rep.Some(replyAuthorNum), Rep.Some(replyPostNum), Rep.Some(visitNum), Rep.Some(postTime)).shaped.<>({r=>import r._; _1.map(_=> rTopicSnapshot.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get, _11.get, _12.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column origin SqlType(int4) */
+    val origin: Rep[Int] = column[Int]("origin")
+    /** Database column board_name SqlType(varchar), Length(50,true) */
+    val boardName: Rep[String] = column[String]("board_name", O.Length(50,varying=true))
+    /** Database column topic_id SqlType(int8) */
+    val topicId: Rep[Long] = column[Long]("topic_id")
+    /** Database column last_post_id SqlType(int8) */
+    val lastPostId: Rep[Long] = column[Long]("last_post_id")
+    /** Database column last_reply_author SqlType(varchar), Length(64,true) */
+    val lastReplyAuthor: Rep[String] = column[String]("last_reply_author", O.Length(64,varying=true))
+    /** Database column last_reply_time SqlType(int8) */
+    val lastReplyTime: Rep[Long] = column[Long]("last_reply_time")
+    /** Database column vote_up_num SqlType(int4), Default(0) */
+    val voteUpNum: Rep[Int] = column[Int]("vote_up_num", O.Default(0))
+    /** Database column vote_down_num SqlType(int4), Default(0) */
+    val voteDownNum: Rep[Int] = column[Int]("vote_down_num", O.Default(0))
+    /** Database column reply_author_num SqlType(int4), Default(0) */
+    val replyAuthorNum: Rep[Int] = column[Int]("reply_author_num", O.Default(0))
+    /** Database column reply_post_num SqlType(int4), Default(0) */
+    val replyPostNum: Rep[Int] = column[Int]("reply_post_num", O.Default(0))
+    /** Database column visit_num SqlType(int4), Default(0) */
+    val visitNum: Rep[Int] = column[Int]("visit_num", O.Default(0))
+    /** Database column post_time SqlType(int8), Default(0) */
+    val postTime: Rep[Long] = column[Long]("post_time", O.Default(0L))
+
+    /** Primary key of tTopicSnapshot (database name topic_statistics_snapshot_pkey) */
+    val pk = primaryKey("topic_statistics_snapshot_pkey", (origin, boardName, topicId))
+  }
+  /** Collection-like TableQuery object for table tTopicSnapshot */
+  lazy val tTopicSnapshot = new TableQuery(tag => new tTopicSnapshot(tag))
 
   /** Entity class storing rows of table tUser
    *  @param id Database column id SqlType(bigserial), AutoInc, PrimaryKey
