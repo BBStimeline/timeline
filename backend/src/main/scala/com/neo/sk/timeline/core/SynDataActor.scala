@@ -89,14 +89,14 @@ object SynDataActor {
                     log.info("postId===" + id)
                   }
                 }
-                count=500
+                if(count>10) count=AppSettings.synCount else count+=2
               }.recover{
                 case e=>
                   log.error(s"failed to insert posts with error $e")
               }
             case Left(e) =>
-              if(count>500) count=500 else if(count>100) count=100 else if(count>100) count=50 else count=10
-              log.info("fetch posts failed......"+e)
+              if(count==500) count=250 else if(count>100) count=100 else if(count>10) count=10 else if(count>1) count=1 else id+=1
+              log.info(s"fetch posts failed......count==$count")
           }
           Behaviors.same
 

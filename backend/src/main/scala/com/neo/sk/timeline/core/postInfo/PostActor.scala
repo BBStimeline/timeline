@@ -4,9 +4,10 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
 import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicInfoReqMsg
 import com.neo.sk.timeline.models.SlickTables
+import com.neo.sk.timeline.models.dao.PostDAO
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
 import org.slf4j.LoggerFactory
-
+import com.neo.sk.timeline.Boot.{executor}
 import scala.collection.mutable
 import scala.concurrent.duration._
 /**
@@ -48,7 +49,11 @@ object PostActor {
         log.debug(s"${ctx.self.path} topic=${origin+"-"+boardName+"-"+topicId} is starting...")
         implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
         Behaviors.withTimers[Command]{ implicit timer =>
-
+          PostDAO.getPostsByBoardId(origin,boardName,topicId).map{ps=>
+            val topicInfo=new mutable.HashMap[Long,SlickTables.rPosts]()
+            ps.map(p=>topicInfo.put(p.postId,p))
+            ctx.self ! SwitchBehavior("idle",idle(topicInfo))
+          }
           switchBehavior(ctx,"busy",busy(),InitTime,TimeOut("init"))
         }
     }
@@ -62,10 +67,15 @@ object PostActor {
     Behaviors.immutable[Command]{ (ctx,msg) =>
       msg match {
         case msg:GetTopicInfoReqMsg=>
-          val topic=topicInfo(msg.topicId)
-          val post=topicInfo(msg.postId)
-          msg.replyTo ! BoardManager.GetTopicInfoRsp(post2TopicInfo(msg.origin,topic,post))
-          Behaviors.same
+          if(topicInfo.contains(msg.topicId)){
+            val topic=topicInfo(msg.topicId)
+            val post=topicInfo(msg.postId)
+            msg.replyTo ! Some(BoardManager.GetTopicInfoRsp(post2TopicInfo(msg.origin,topic,post)))
+            Behaviors.same
+          }else{
+            msg.replyTo ! None
+            Behaviors.stopped
+          }
 
         case x=>
           log.warn(s"unknown msg: $x")

@@ -420,10 +420,22 @@ object SmallSpiderClient extends HttpUtil{
 
 
   def main(args: Array[String]): Unit = {
-   getSynPosts(1062890876l,300).map{r=>
+   getSynPosts(1062976988l,2).map{r=>
      r.map{ps=>
-       println(ps.size)
-       ps.map(t=>println(t.id))
+       ps.map{t=>
+//         println(t.topicId)
+//         println(t.postId)
+//         println(t.mainPost)
+//         println(t.title)
+//         println(t.authorId)
+//         println(t.nickname)
+//         println(t.contentText)
+//         println(t.imgs)
+//         println(t.hestiaImgs)
+//         println(t.timestamp)
+//         println(t.id)
+         println(t)
+       }
      }
    }
     Thread.sleep(10000)

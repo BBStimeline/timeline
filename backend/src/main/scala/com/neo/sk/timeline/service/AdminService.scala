@@ -5,7 +5,11 @@ import akka.actor.typed.ActorRef
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
+import com.neo.sk.timeline.core.SynDataActor.{StartSynData, StopSynData}
+import com.neo.sk.timeline.models.dao.SynDataDAO
+import com.neo.sk.timeline.shared.ptcl.{ErrorRsp, SuccessRsp}
 import org.slf4j.LoggerFactory
+import com.neo.sk.timeline.Boot.{synDataActor,executor}
 
 import scala.language.postfixOps
 
@@ -28,8 +32,19 @@ trait AdminService extends ServiceUtils with SessionBase {
     }
   }
 
+  private val startSynData=(path("startSynData") & get & pathEndOrSingleSlash) {
+    synDataActor ! StopSynData
+    synDataActor ! StartSynData
+    complete(SuccessRsp())
+  }
+
+  private val stopSynData=(path("stopSynData") & get & pathEndOrSingleSlash) {
+    synDataActor ! StopSynData
+    complete(ErrorRsp(0, "Ok"))
+  }
+
   val adminRoutes: Route =
     pathPrefix("admin") {
-      adminIndex
+      adminIndex ~ startSynData ~ stopSynData
     }
 }

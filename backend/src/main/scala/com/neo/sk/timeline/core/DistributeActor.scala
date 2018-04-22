@@ -8,11 +8,12 @@ import com.neo.sk.timeline.ptcl.UserProtocol._
 
 import scala.concurrent.duration._
 import scala.collection.mutable
-import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
+import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout, userManager}
 import com.neo.sk.timeline.common.Constant.FeedType
 import com.neo.sk.timeline.core.user.UserManager.UserLogout
 import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisCache, DisType, FeedListInfo}
 import com.neo.sk.timeline.common.Constant.FeedType._
+import com.neo.sk.timeline.core.user.UserManager
 import com.neo.sk.timeline.ptcl.PostProtocol.PostEvent
 
 import scala.concurrent.Future
@@ -42,6 +43,7 @@ object DistributeActor {
 
   def init(name:String,variety:Int,paramOpt:Option[DisType]): Behavior[Command] = {
     Behaviors.setup[Command] { ctx =>
+      log.info(s"distributeActor--$name is starting")
       implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
       val param=paramOpt.get
       Behaviors.withTimers[Command] { implicit timer =>
@@ -55,10 +57,10 @@ object DistributeActor {
             replyPostList<-PostSortDAO.getPostListByReplyTime(board,origin,boardBatch)
           }yield {
             postList.map(p=>
-              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime,None))
+              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,0l,None))
             )
             replyPostList.map(p=>
-              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postId,p.replyTime,None))
+              newReplyPost.put((p.origin,p.boardName,p.topicId,0l),(p.postId,p.replyTime,None))
             )
             ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
@@ -70,15 +72,15 @@ object DistributeActor {
             posts <- PostDAO.getLastTopicByUser(userId,userName,origin,userBatch)
             tps <- {
               val topics=posts.groupBy(r=>(r.origin,r.boardName,r.topicId))
-              PostDAO.getUserByPostId(topics.map(_._1).toSeq)
+              PostDAO.getUserByPostId(topics.keys.toSeq)
             }
           }yield {
             val topics=posts.groupBy(r=>(r.origin,r.boardName,r.topicId))
             topics.map { t =>
               val lastPost=t._2.map(_.postId).max
               val lastPostTime=t._2.map(_.postTime).max
-              newPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,lastPostTime,Some(AuthorInfo(userId,userName,origin))))
-              newReplyPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,lastPostTime,Some(AuthorInfo(userId,userName,origin))))
+              newPost.put((t._1._1, t._1._2,t._1._3,tps.filter(_._1==t._1._3).map(_._2).head), (lastPost,0l,Some(AuthorInfo(userId,userName,origin))))
+              newReplyPost.put((t._1._1, t._1._2,t._1._3,0l), (lastPost,lastPostTime,Some(AuthorInfo(userId,userName,origin))))
             }
             ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
@@ -88,8 +90,8 @@ object DistributeActor {
           val origin=param.origin
           PostSortDAO.getPostById(origin,board,topicId).map{
             case Some(p)=>
-              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,p.postTime,None))
-              newReplyPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.postId,p.replyTime,None))
+              newPost.put((p.origin,p.boardName,p.topicId,p.postTime),(p.topicId,0l,None))
+              newReplyPost.put((p.origin,p.boardName,p.topicId,0l),(p.postId,p.replyTime,None))
               ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
         }
@@ -119,9 +121,15 @@ object DistributeActor {
 
         case DealTask(p)=>
           if(p.isMain){
-            disCache.newPost.put((p.origin,p.board,p.topicId,p.postTime),(p.postId,p.postTime,structAuthor(disCache.variety,p)))
+            disCache.newPost.put((p.origin,p.board,p.topicId,p.postTime),(p.postId,0l,structAuthor(disCache.variety,p)))
+            disCache.followList.foreach{u=>
+              userManager ! UserManager.DisEvent(u,disCache.variety,(p.origin,p.board,p.topicId,p.postTime,p.postId,0l,structAuthor(disCache.variety,p)),p.isMain)
+            }
           }else{
-            disCache.newReplyPost.put((p.origin,p.board,p.topicId,p.postTime),(p.postId,p.postTime,structAuthor(disCache.variety,p)))
+            disCache.newReplyPost.put((p.origin,p.board,p.topicId,0l),(p.postId,p.postTime,structAuthor(disCache.variety,p)))
+            disCache.followList.foreach{u=>
+              userManager ! UserManager.DisEvent(u,disCache.variety,(p.origin,p.board,p.topicId,0l,p.postId,p.postTime,structAuthor(disCache.variety,p)),p.isMain)
+            }
           }
           Behaviors.same
 

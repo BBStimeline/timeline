@@ -26,7 +26,7 @@ object BoardManager {
   final case class InsertPostList(list:List[rPosts]) extends Command
 
   /**通用消息*/
-  case class GetTopicInfoReqMsg(origin:Int,board:String,topicId:Long,postId:Long,replyTo:ActorRef[GetTopicInfoRsp]) extends Command with BoardActor.Command with PostActor.Command
+  case class GetTopicInfoReqMsg(origin:Int,board:String,topicId:Long,postId:Long,replyTo:ActorRef[Option[GetTopicInfoRsp]]) extends Command with BoardActor.Command with PostActor.Command
   case class GetTopicInfoRsp(topic:Post)/*extends Command with BoardActor.Command with PostActor.Command*/
 
   val behavior: Behavior[Command] = init()
@@ -35,15 +35,17 @@ object BoardManager {
     Behaviors.immutable[Command] { (ctx,msg) =>
       msg match {
         case msg:GetTopicList=>
-          val rspFuture = Future.sequence(msg.req.map{t =>getBoard(ctx,t.origin,t.board) ? (GetTopicInfoReqMsg(t.origin,t.board,t.topicId,t.postId,_:ActorRef[GetTopicInfoRsp]))})
+          val rspFuture = Future.sequence(msg.req.map{t =>getBoard(ctx,t.origin,t.board) ? (GetTopicInfoReqMsg(t.origin,t.board,t.topicId,t.postId,_:ActorRef[Option[GetTopicInfoRsp]]))})
           rspFuture.map{topics=>
-            msg.replyTo ! UserFeedRsp(normalPost = topics.map(r=>FeedPost(r.topic,r.topic.postTime)))
+            var normalPost:List[FeedPost]=Nil
+            topics.foreach{t=>if(!t.isEmpty) normalPost::=FeedPost(t.get.topic,t.get.topic.postTime)}
+            msg.replyTo ! UserFeedRsp(normalPost)
           }
           Behaviors.same
 
         case msg:InsertPostList=>
           msg.list.foreach{ p=>
-            getBoard(ctx,p.origin,p.boardName) ! BoardActor.InsertPost(p)
+//            getBoard(ctx,p.origin,p.boardName) ! BoardActor.InsertPost(p)
             distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
           }
           Behaviors.same
