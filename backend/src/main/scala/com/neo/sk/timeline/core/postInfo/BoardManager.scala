@@ -46,7 +46,7 @@ object BoardManager {
         case msg:InsertPostList=>
           msg.list.foreach{ p=>
             getBoard(ctx,p.origin,p.boardName) ! BoardActor.InsertPost(p)
-            distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
+//            distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
           }
           Behaviors.same
 

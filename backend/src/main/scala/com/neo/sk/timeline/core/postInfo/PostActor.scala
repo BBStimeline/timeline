@@ -7,8 +7,10 @@ import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.models.dao.{PostDAO, TopicDAO}
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
 import org.slf4j.LoggerFactory
-import com.neo.sk.timeline.Boot.executor
+import com.neo.sk.timeline.Boot.{distributeManager, executor}
+import com.neo.sk.timeline.core.DistributeManager
 import com.neo.sk.timeline.core.postInfo.BoardActor.InsertPost
+import com.neo.sk.timeline.ptcl.PostProtocol.PostEvent
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -29,9 +31,12 @@ object PostActor {
                                    timeOut: TimeOut = TimeOut("busy time error")
                                  ) extends Command
   /**消息*/
+  private final case object PostIdleKey
+  case object PostIdleTimeout extends Command
 
 
-  private final val InitTime = Some(5.minutes)
+  private val keepSnapTime= 5.minutes
+  private val InitTime = Some(5.minutes)
 
   /**内置转换函数*/
   private def img2ImgList(img:String)={
@@ -53,15 +58,16 @@ object PostActor {
         Behaviors.withTimers[Command]{ implicit timer =>
           val topicInfo=new mutable.HashMap[Long,SlickTables.rPosts]()
           TopicDAO.getPostById(origin,boardName,topicId).foreach{r=>
-            ctx.self ! SwitchBehavior("idle",idle(topicInfo,r))
+            ctx.self ! SwitchBehavior("idle",idle(topicInfo,r.getOrElse(SlickTables.rTopicSnapshot(origin,boardName,0l,0l,"",0l))))
           }
+          timer.startPeriodicTimer(PostIdleKey,PostIdleTimeout,keepSnapTime)
           switchBehavior(ctx,"busy",busy(),InitTime,TimeOut("init"))
         }
     }
   }
 
   private def idle(topicInfo:mutable.HashMap[Long,SlickTables.rPosts]=mutable.HashMap(),
-                   topicSnap:Option[SlickTables.rTopicSnapshot]
+                   topicSnap:SlickTables.rTopicSnapshot
                   )
                   (
                     implicit stashBuffer:StashBuffer[Command],
@@ -70,18 +76,40 @@ object PostActor {
     Behaviors.immutable[Command]{ (ctx,msg) =>
       msg match {
         case msg:GetTopicInfoReqMsg=>
-          if(topicInfo.contains(msg.topicId)){
-            val topic=topicInfo(msg.topicId)
-            val post=topicInfo(msg.postId)
-            msg.replyTo ! Some(BoardManager.GetTopicInfoRsp(post2TopicInfo(msg.origin,topic,post)))
-            Behaviors.same
-          }else{
-            msg.replyTo ! None
-            Behaviors.stopped
+          PostDAO.getPostsByBoardId(topicSnap.origin,topicSnap.boardName,topicSnap.topicId).map{ps=>
+            ps.map(p=>topicInfo.put(p.postId,p))
+            if(topicInfo.contains(msg.topicId)){
+              val topic=topicInfo(msg.topicId)
+              val post=topicInfo(msg.postId)
+              msg.replyTo ! Some(BoardManager.GetTopicInfoRsp(post2TopicInfo(msg.origin,topic,post)))
+            }else{
+              msg.replyTo ! None
+              Behaviors.stopped
+            }
           }
+          Behaviors.same
 
         case msg:InsertPost=>
+          val p=msg.post
+          if(msg.post.isMain){
+            PostDAO.insert(p)
+            distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
+            ctx.self ! SwitchBehavior("idle",idle(topicInfo,topicSnap.copy(topicId = msg.post.topicId,lastPostId = msg.post.topicId,postTime = msg.post.postTime,lastReplyTime = msg.post.postTime,lastReplyAuthor = msg.post.authorId)))
+          }else{
+            if(topicSnap.topicId!=0l){
+              PostDAO.insert(p)
+              ctx.self ! SwitchBehavior("idle",idle(topicInfo,topicSnap.copy(lastPostId = msg.post.postId,lastReplyTime = msg.post.postTime,lastReplyAuthor = msg.post.authorId)))
+            }else{
+              Behaviors.stopped
+            }
+          }
+          switchBehavior(ctx,"busy",busy(),InitTime,TimeOut("init"))
 
+        case PostIdleTimeout=>
+          if(topicSnap.topicId!=0l){
+            log.info(s"keepSnap with ${topicSnap.origin+"---"+topicSnap.boardName+"---"+topicSnap.topicId}")
+            TopicDAO.insertOrUpdateTopicSnap(topicSnap)
+          }
           Behaviors.same
 
         case x=>

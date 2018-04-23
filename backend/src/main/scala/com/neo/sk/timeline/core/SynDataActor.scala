@@ -28,6 +28,7 @@ object SynDataActor {
   private case object TimerKey
   private case object DelTimeKey
   private case object Timeout extends Command
+  private case object TestTimeOut extends Command
   private case object DelTimeout extends Command
   case object StartSynData extends Command
   case object StopSynData extends Command
@@ -79,26 +80,67 @@ object SynDataActor {
               val list = p.map({x=>
                 SlickTables.rPosts(x.id,OriginType.SMTH,x.topicId,x.postId,x.mainPost,
                   x.title,x.authorId,x.nickname,x.contentText,x.imgs,x.hestiaImgs,x.timestamp,x.boardName,x.url,x.boardNameCn,if(x.quoteId==0l) None else Some(x.quoteId),now,0,x.id)})
-              PostDAO.insertList(list).map{re=>
-                boardManager ! BoardManager.InsertPostList(list)
-                id=p.last.id
-                SynDataDAO.updateData(1, id).map { r =>
-                  if (r < 0l) {
-                    log.error(s"failed to save postId to record...postId=$id")
-                  } else {
-                    log.info("postId===" + id)
-                  }
+//              PostDAO.insertList(list).map{re=>
+//                boardManager ! BoardManager.InsertPostList(list)
+//                id=p.last.id
+//                SynDataDAO.updateData(1, id).map { r =>
+//                  if (r < 0l) {
+//                    log.error(s"failed to save postId to record...postId=$id")
+//                  } else {
+//                    log.info("postId===" + id)
+//                  }
+//                }
+//                if(count>10) count=AppSettings.synCount else count+=2
+//              }.recover{
+//                case e=>
+//                  log.error(s"failed to insert posts with error $e")
+//              }
+              boardManager ! BoardManager.InsertPostList(list)
+              id=p.last.id
+              SynDataDAO.updateData(1, id).map { r =>
+                if (r < 0l) {
+                  log.error(s"failed to save postId to record...postId=$id")
+                } else {
+                  log.info("postId===" + id)
                 }
-                if(count>10) count=AppSettings.synCount else count+=2
-              }.recover{
-                case e=>
-                  log.error(s"failed to insert posts with error $e")
               }
+              if(count>10) count=AppSettings.synCount else count+=2
             case Left(e) =>
               if(count==500) count=250 else if(count>100) count=100 else if(count>10) count=10 else if(count>1) count=1 else id+=1
               log.info(s"fetch posts failed......count==$count")
           }
           Behaviors.same
+
+//        case TestTimeOut =>
+//          SmallSpiderClient.getSynPosts(id,2).map{
+//            case Right(p) =>
+//              val now=System.currentTimeMillis()
+//              val list = p.map({x=>
+//                SlickTables.rPosts(x.id,OriginType.SMTH,x.topicId,x.postId,x.mainPost,
+//                  x.title,x.authorId,x.nickname,x.contentText,x.imgs,x.hestiaImgs,x.timestamp,x.boardName,x.url,x.boardNameCn,if(x.quoteId==0l) None else Some(x.quoteId),now,0,x.id)})
+//              //              PostDAO.insertList(list).map{re=>
+//              //                boardManager ! BoardManager.InsertPostList(list)
+//              //                id=p.last.id
+//              //                SynDataDAO.updateData(1, id).map { r =>
+//              //                  if (r < 0l) {
+//              //                    log.error(s"failed to save postId to record...postId=$id")
+//              //                  } else {
+//              //                    log.info("postId===" + id)
+//              //                  }
+//              //                }
+//              //                if(count>10) count=AppSettings.synCount else count+=2
+//              //              }.recover{
+//              //                case e=>
+//              //                  log.error(s"failed to insert posts with error $e")
+//              //              }
+//              id+=500
+//              if(id<1063033213) ctx.self ! TestTimeOut
+//              boardManager ! BoardManager.InsertPostList(list)
+//            case Left(e) =>
+//              if(count==500) count=250 else if(count>100) count=100 else if(count>10) count=10 else if(count>1) count=1 else id+=1
+//              log.info(s"fetch posts failed......count==$count")
+//          }
+//          Behaviors.same
 
         case DelTimeout =>
           PostDAO.removePostByTime.onComplete({

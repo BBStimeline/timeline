@@ -15,7 +15,7 @@ import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import com.neo.sk.timeline.common.AppSettings
 import com.neo.sk.timeline.models.SlickTables
-import com.neo.sk.timeline.models.dao.UserDAO
+import com.neo.sk.timeline.models.dao.{PostDAO, UserDAO}
 import com.neo.sk.timeline.service.ServiceUtils.CommonRsp
 import com.neo.sk.timeline.service.SessionBase.UserSessionKey
 import com.neo.sk.timeline.shared.ptcl.UserProtocol._
@@ -24,7 +24,8 @@ import com.neo.sk.timeline.Boot.{boardManager, executor, scheduler, timeout, use
 import com.neo.sk.timeline.core.postInfo.BoardManager
 import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicList
 import com.neo.sk.timeline.core.user.UserManager
-import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.UserFeedRsp
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
+import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, UserFeedRsp}
 
 import scala.concurrent.duration._
 
@@ -161,13 +162,23 @@ trait UserService extends ServiceUtils with SessionBase{
           val future: Future[Option[List[UserFeedReq]]] = userManager ? (GetUserFeed(u.uid, sortType, lastItemTime, pageSize, _))
           future.map {
             case Some(feeds) =>
-//              val futureTopic:Future[UserFeedRsp] = boardManager ? (GetTopicList(feeds,_))
-//              dealFutureResult {
-//                futureTopic.map{topics=>
-//                  complete(topics)
+              val futureTopic:Future[UserFeedRsp] = boardManager ? (GetTopicList(feeds,_))
+              dealFutureResult {
+                futureTopic.map{topics=>
+                  complete(topics)
+                }
+              }
+//              val postIds=(feeds.map(r=>(r.board,r.topicId,r.origin)):::feeds.map(r=>(r.board,r.postId,r.origin))).toSet.toSeq
+//              dealFutureResult(
+//                PostDAO.batchSearchPostDetailByCache(postIds).map{ts=>
+//                  val topics=feeds.map{t=>
+//                    val topic=ts.filter(_.postId==t.topicId).head
+//                    val post=ts.filter(_.postId==t.postId).head
+//                    FeedPost(post2TopicInfo(t.origin,topic,post),post.postTime)
+//                  }
+//                  complete(UserFeedRsp(topics))
 //                }
-//              }
-              complete(feeds)
+//              )
             case None =>
               complete(ErrorRsp(120007, "sortType error...."))
 
@@ -179,6 +190,17 @@ trait UserService extends ServiceUtils with SessionBase{
         }
       }
     }
+  }
+
+  private def img2ImgList(img:String)={
+    img.split(";").toList
+  }
+  private def post2TopicInfo(origin:Int,t:SlickTables.rPosts,p:SlickTables.rPosts)={
+    Post(
+      origin,t.boardName,t.boardNameCn,p.postId,p.topicId,t.title,img2ImgList(p.imgs),
+      img2ImgList(p.hestiaImgs),Some(p.content),AuthorInfo(p.authorId,p.authorName,p.origin),p.postTime,
+      None,isMain = true
+    )
   }
 
   val userRoutes: Route =

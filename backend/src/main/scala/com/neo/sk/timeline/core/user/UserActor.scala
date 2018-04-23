@@ -246,7 +246,6 @@ object UserActor {
           Behaviors.same
 
         case msg:RefreshFeed=>
-          log.info("!!!!!!!!---------------------1")
           val targetList = user.favBoards.map(i => (FeedType.BOARD, i._1 + "-" + i._2)).toList ::: user.favUsers.map(i => (FeedType.USER, i._1 +"-"+i._2)).toList:::user.favTopic.map(i=>(FeedType.TOPIC,i._1+"-"+i._2+"-"+i._3)).toList
           Future.sequence{
             targetList.map{ i =>
