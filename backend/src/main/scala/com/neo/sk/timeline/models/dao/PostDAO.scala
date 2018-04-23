@@ -83,4 +83,8 @@ object PostDAO {
     db.run(tPosts.filter(r=>r.origin===origin&&r.boardName===board&&r.topicId===topicId).result)
   }
 
+  def removePostByTopic(origin:Int,board:String,topicId:Long)={
+    db.run(tPosts.filter(r=>r.origin===origin&&r.boardName===board&&r.topicId==topicId).delete)
+  }
+
 }

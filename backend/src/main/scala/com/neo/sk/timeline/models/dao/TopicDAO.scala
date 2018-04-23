@@ -19,6 +19,7 @@ object TopicDAO {
     db.run(tTopicSnapshot.insertOrUpdate(a))
   }
 
+
   def getPostListByPostTime(board:String, origin:Int, num:Int)={
     db.run(tTopicSnapshot.filter(r=>r.origin===origin&&r.boardName===board).sortBy(_.postTime.desc).take(num).result)
   }

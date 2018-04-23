@@ -65,11 +65,12 @@ object BoardActor {
           Behaviors.same
 
         case InsertPost(post)=>
-          if(post.isMain){
+          if(post.isMain&&(System.currentTimeMillis()-post.postTime)<24*60*60*1000){
             postNum+=1
           }
           getPost(ctx,post.origin,post.boardName,post.topicId) ! InsertPost(post)
           Behaviors.same
+
         case x=>
           log.warn(s"unknown msg: $x")
           Behaviors.unhandled
@@ -107,7 +108,7 @@ object BoardActor {
   }
 
   private def getPost(ctx: ActorContext[Command],origin:Int,boardName:String,topicId:Long):ActorRef[PostActor.Command] = {
-    val childName = s"${origin}_$boardName"
+    val childName = s"${origin}_${boardName}_${topicId}"
     ctx.child(childName).getOrElse{
       ctx.spawn(PostActor.create(origin,boardName,topicId),childName)
     }.upcast[PostActor.Command]
