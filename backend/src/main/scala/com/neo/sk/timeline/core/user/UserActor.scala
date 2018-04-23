@@ -134,11 +134,11 @@ object UserActor {
                 user.newFeed.put((FeedType.BOARD,event._1, event._2, event._3, event._4),
                   (event._5, event._6, event._7))
               }
-              data.newReplyPosts.foreach { event =>
-                if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
-                  user.newReplyFeed.put((FeedType.BOARD,event._1, event._2, event._3, event._4),
-                    (event._5, event._6, event._7))
-                }
+            }
+            data.newReplyPosts.foreach { event =>
+              if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                user.newReplyFeed.put((FeedType.BOARD,event._1, event._2, event._3, event._4),
+                  (event._5, event._6, event._7))
               }
             }
           }
@@ -152,15 +152,15 @@ object UserActor {
           val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(FeedType.BOARD,name,_))
           future.map { data =>
             data.newPosts.foreach { event =>
-              if (!user.newFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
-                user.newFeed.put((FeedType.TOPIC,event._1, event._2, event._3, event._4),
+              if (!user.newFeed.exists(r => (r._1._2, r._1._3, r._1._4) == (event._1, event._2, event._3))) {
+                user.newFeed.put((FeedType.TOPIC, event._1, event._2, event._3, event._4),
                   (event._5, event._6, event._7))
               }
-              data.newReplyPosts.foreach { event =>
-                if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
-                  user.newReplyFeed.put((FeedType.TOPIC,event._1, event._2, event._3, event._4),
-                    (event._5, event._6, event._7))
-                }
+            }
+            data.newReplyPosts.foreach { event =>
+              if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                user.newReplyFeed.put((FeedType.TOPIC,event._1, event._2, event._3, event._4),
+                  (event._5, event._6, event._7))
               }
             }
           }
@@ -174,15 +174,15 @@ object UserActor {
           val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(FeedType.BOARD,name,_))
           future.map { data =>
             data.newPosts.foreach { event =>
-              if (!user.newFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
-                user.newFeed.put((FeedType.USER,event._1, event._2, event._3, event._4),
+              if (!user.newFeed.exists(r => (r._1._2, r._1._3, r._1._4) == (event._1, event._2, event._3))) {
+                user.newFeed.put((FeedType.USER, event._1, event._2, event._3, event._4),
                   (event._5, event._6, event._7))
               }
-              data.newReplyPosts.foreach { event =>
-                if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
-                  user.newReplyFeed.put((FeedType.USER, event._1, event._2, event._3, event._4),
-                    (event._5, event._6, event._7))
-                }
+            }
+            data.newReplyPosts.foreach { event =>
+              if (!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
+                user.newReplyFeed.put((FeedType.USER, event._1, event._2, event._3, event._4),
+                  (event._5, event._6, event._7))
               }
             }
           }
@@ -252,24 +252,27 @@ object UserActor {
               val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(i._1, i._2, _))
               future.map { data =>
                 data.newPosts.foreach { event =>
-                  if (!user.newFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
-                    user.newFeed.put((i._1,event._1, event._2, event._3, event._4),
+                  if (!user.newFeed.exists(r => (r._1._2, r._1._3, r._1._4) == (event._1, event._2, event._3))) {
+                    user.newFeed.put((data.feedType, event._1, event._2, event._3, event._4),
                       (event._5, event._6, event._7))
+                  }
                 }
                 data.newReplyPosts.foreach { event =>
                   if(!user.newReplyFeed.exists(r=>(r._1._2,r._1._3,r._1._4) == (event._1, event._2, event._3))) {
-                    user.newReplyFeed.put((i._1,event._1, event._2, event._3,event._4),
+                    user.newReplyFeed.put((data.feedType,event._1, event._2, event._3,event._4),
                       (event._5, event._6, event._7))
                   }
                 }
               }
-              }
-            }}.onComplete{
+            }
+          }.onComplete{
             case Success(_) =>
               msg.sortType match {
                 case Some(sortType) =>
-                  if (sortType == 1)
-                    msg.replyTo.get ! Some(user.newFeed.map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
+                  if (sortType == 1) {
+                    println(user.newFeed.size)
+                    msg.replyTo.get ! Some(user.newFeed.map(i => UserFeedReq(i._1._2, i._1._3, i._1._4, i._2._1, i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
+                  }
                   else
                     msg.replyTo.get ! Some(user.newReplyFeed.map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
                 case None => //

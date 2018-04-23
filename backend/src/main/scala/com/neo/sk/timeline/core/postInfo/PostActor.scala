@@ -98,6 +98,7 @@ object PostActor {
           }else{
             if(topicSnap.topicId!=0l){
               PostDAO.insert(p)
+              distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
               ctx.self ! SwitchBehavior("idle",idle(topicInfo,topicSnap.copy(lastPostId = msg.post.postId,lastReplyTime = msg.post.postTime,lastReplyAuthor = msg.post.authorId)))
             }else{
               Behaviors.stopped

@@ -122,6 +122,7 @@ object DistributeActor {
         case DealTask(p)=>
           if(p.isMain){
             disCache.newPost.put((p.origin,p.board,p.topicId,p.postTime),(p.postId,0l,structAuthor(disCache.variety,p)))
+            disCache.newReplyPost.put((p.origin,p.board,p.topicId,0l),(p.postId,p.postTime,structAuthor(disCache.variety,p)))
             disCache.followList.foreach{u=>
               userManager ! UserManager.DisEvent(u,disCache.variety,(p.origin,p.board,p.topicId,p.postTime,p.postId,0l,structAuthor(disCache.variety,p)),p.isMain)
             }
@@ -136,7 +137,7 @@ object DistributeActor {
         case msg:GetFeedList=>
           val newPost=disCache.newPost.toList.sortBy(_._1._4).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2,r._2._3))
           val newReplyPost=disCache.newReplyPost.toList.sortBy(_._2._1).reverse.map(r=>(r._1._1,r._1._2,r._1._3,r._1._4,r._2._1,r._2._2,r._2._3))
-          msg.replyTo ! FeedListInfo(newPost,newReplyPost)
+          msg.replyTo ! FeedListInfo(disCache.variety,newPost,newReplyPost)
           Behaviors.same
 
         case x=>
