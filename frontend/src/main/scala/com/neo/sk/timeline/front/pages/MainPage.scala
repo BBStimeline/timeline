@@ -16,7 +16,7 @@ import scala.xml.Elem
   * Time: 15:56
   */
 object MainPage extends Index {
-  override val locationHashString="#/LoginPage"
+  override val locationHashString="#/MainPage"
 
   val listGroup=Var(
     <div class="list-group">
