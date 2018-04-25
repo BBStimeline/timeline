@@ -48,7 +48,7 @@ object UserFollowProtocol {
                          )
 
   case class UserFeedRsp(
-                          normalPost: List[FeedPost],
+                          normalPost: Option[List[FeedPost]],
                           errCode: Int = 0,
                           msg: String = "ok"
                         )

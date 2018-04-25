@@ -10,9 +10,9 @@ object Routes {
 
     /**检查Session*/
     val checkSession = baseUrl + "/checkSession"
+
+    def getFeedFlow(sort:Int,lastTime:Long,pageSize:Int) = baseUrl + s"/getFeedFlow?sortType=$sort&lastItemTime=$lastTime&pageSize=$pageSize"
   }
-
-
 
 }
 

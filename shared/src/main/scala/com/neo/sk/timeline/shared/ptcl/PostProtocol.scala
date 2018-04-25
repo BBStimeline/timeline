@@ -29,8 +29,10 @@ object PostProtocol {
                    tittle: String,
                    imgs:List[String],
                    hestiaImg:List[String],
-                   content:Option[String],//文章内容
+                   content:String,//文章内容
+                   mainPostAuthor:AuthorInfo,
                    author: AuthorInfo,
+                   mainPostTime:Long,
                    postTime:Long,
                    statistics:Option[PostStatistics]=None,
                    myVote:Option[Int]=None,//0:没有投票，1：顶，-1：踩

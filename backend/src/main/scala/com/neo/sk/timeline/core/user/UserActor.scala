@@ -246,7 +246,7 @@ object UserActor {
           Behaviors.same
 
         case msg:RefreshFeed=>
-          val targetList = user.favBoards.map(i => (FeedType.BOARD, i._1 + "-" + i._2)).toList ::: user.favUsers.map(i => (FeedType.USER, i._1 +"-"+i._2)).toList:::user.favTopic.map(i=>(FeedType.TOPIC,i._1+"-"+i._2+"-"+i._3)).toList
+          val targetList = user.favBoards.map(i => (FeedType.BOARD, i._1 + "-" + i._2)).toList :::user.favTopic.map(i=>(FeedType.TOPIC,i._1+"-"+i._2+"-"+i._3)).toList ::: user.favUsers.map(i => (FeedType.USER, i._1 +"-"+i._2)).toList
           Future.sequence{
             targetList.map{ i =>
               val future: Future[FeedListInfo] = distributeManager ? (DistributeManager.GetFeedList(i._1, i._2, _))
@@ -270,7 +270,6 @@ object UserActor {
               msg.sortType match {
                 case Some(sortType) =>
                   if (sortType == 1) {
-                    println(user.newFeed.size)
                     msg.replyTo.get ! Some(user.newFeed.map(i => UserFeedReq(i._1._2, i._1._3, i._1._4, i._2._1, i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize.get))
                   }
                   else

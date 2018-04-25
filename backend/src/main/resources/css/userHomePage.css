@@ -306,7 +306,7 @@ input, textarea{
     width: 160px;
     height: 80px;
     border-radius: 160px 160px 0 0;
-    border: solid rgba(255, 192, 203, 0.8);
+    border: solid rgba(51, 192, 203, 0.8);
     border-width: 80px 80px 0 80px;
     transform-origin: 160px 160px;
     transform: rotate(180deg);
