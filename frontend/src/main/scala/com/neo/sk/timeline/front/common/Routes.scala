@@ -11,7 +11,9 @@ object Routes {
     /**检查Session*/
     val checkSession = baseUrl + "/checkSession"
 
-    def getFeedFlow(sort:Int,lastTime:Long,pageSize:Int) = baseUrl + s"/getFeedFlow?sortType=$sort&lastItemTime=$lastTime&pageSize=$pageSize"
+    val getLastTime = baseUrl +"/getLastTime"
+
+    def getFeedFlow(sort:Int,lastTime:Long,pageSize:Int,up:Boolean) = baseUrl + s"/getFeedFlow?sortType=$sort&itemTime=$lastTime&pageSize=$pageSize&up=$up"
   }
 
 }

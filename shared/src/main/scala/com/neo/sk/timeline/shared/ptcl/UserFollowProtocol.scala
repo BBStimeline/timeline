@@ -57,4 +57,10 @@ object UserFollowProtocol {
                        post: Post,
                        time: Long
                      )
+
+  case class LastTimeRsp(
+                        first:Option[(Long,Long)],
+                        errCode:Int=0,
+                        msg:String="OK"
+                        )
 }

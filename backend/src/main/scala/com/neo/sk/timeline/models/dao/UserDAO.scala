@@ -73,4 +73,8 @@ object UserDAO {
   def cleanTopic(uid: Long, origin: Int, boardName: String, topicId: Long) = db.run{
     tUserFeed.filter(i => i.userId === uid && i.origin === origin && i.boardname === boardName && i.postId === topicId && i.feedType === FeedType.TOPIC).delete
   }
+
+  def updateTime(uid:Long,first1:Long,first2:Long)={
+    db.run(tUser.filter(_.id===uid).map(r=>(r.firstItemTime1,r.firstItemTime2)).update(first1,first2))
+  }
 }

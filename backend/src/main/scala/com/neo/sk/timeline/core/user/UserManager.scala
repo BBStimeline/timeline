@@ -24,8 +24,9 @@ object UserManager {
 //  final case class AddUserFeed(uid: Long, post:PostBaseInfo, author:AuthorInfo, createTime: Long, feedType: String) extends Command
 //
 //  final case class UpdateUserFeed(uid: Long, post:PostBaseInfo, author:AuthorInfo, lastReplyTime: Long, feedType: String) extends Command
-//
-  final case class GetUserFeed(uid: Long, sortType: Int, lastItemTime: Long, pageSize: Int, replyTo:ActorRef[Option[List[UserFeedReq]]]) extends Command
+
+  final case class GetLastTime(uid:Long,replyTo:ActorRef[(Long,Long)]) extends Command
+  final case class GetUserFeed(uid: Long, sortType: Int, itemTime: Long, pageSize: Int, up:Boolean, replyTo:ActorRef[Option[List[UserFeedReq]]]) extends Command
   final case class UserFollowUserMsg(uid: Long, followId:String,followName:String,origin:Int) extends Command
   final case class UserFollowBoardMsg(uid: Long, boardName: String, origin:Int) extends Command
   final case class UserFollowTopicMsg(uid: Long, post:PostBaseInfo) extends Command
@@ -83,6 +84,10 @@ object UserManager {
           Behaviors.same
 
         case msg:GetUserFeed=>
+          getUserActor(ctx,msg.uid) ! msg
+          Behaviors.same
+
+        case msg:GetLastTime=>
           getUserActor(ctx,msg.uid) ! msg
           Behaviors.same
 

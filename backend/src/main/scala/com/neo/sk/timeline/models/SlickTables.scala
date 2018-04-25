@@ -259,18 +259,20 @@ trait SlickTables {
    *  @param city Database column city SqlType(varchar), Length(50,true), Default()
    *  @param gender Database column gender SqlType(int4), Default(0)
    *  @param replyCnt Database column reply_cnt SqlType(int4), Default(0)
-   *  @param openCnt Database column open_cnt SqlType(int4), Default(0) */
-  final case class rUser(id: Long, userId: String, bbsId: String = "", sha1Pwd: String, createTime: Long, sessionKey: String = "", lastLoginTime: Long, mobile: String = "", email: String = "", headImg: String = "", city: String = "", gender: Int = 0, replyCnt: Int = 0, openCnt: Int = 0)
+   *  @param openCnt Database column open_cnt SqlType(int4), Default(0)
+   *  @param firstItemTime1 Database column first_item_time1 SqlType(int8), Default(0)
+   *  @param firstItemTime2 Database column first_item_time2 SqlType(int8), Default(0) */
+  final case class rUser(id: Long, userId: String, bbsId: String = "", sha1Pwd: String, createTime: Long, sessionKey: String = "", lastLoginTime: Long, mobile: String = "", email: String = "", headImg: String = "", city: String = "", gender: Int = 0, replyCnt: Int = 0, openCnt: Int = 0, firstItemTime1: Long = 0L, firstItemTime2: Long = 0L)
   /** GetResult implicit for fetching rUser objects using plain SQL queries */
   implicit def GetResultrUser(implicit e0: GR[Long], e1: GR[String], e2: GR[Int]): GR[rUser] = GR{
     prs => import prs._
-    rUser.tupled((<<[Long], <<[String], <<[String], <<[String], <<[Long], <<[String], <<[Long], <<[String], <<[String], <<[String], <<[String], <<[Int], <<[Int], <<[Int]))
+    rUser.tupled((<<[Long], <<[String], <<[String], <<[String], <<[Long], <<[String], <<[Long], <<[String], <<[String], <<[String], <<[String], <<[Int], <<[Int], <<[Int], <<[Long], <<[Long]))
   }
   /** Table description of table user. Objects of this class serve as prototypes for rows in queries. */
   class tUser(_tableTag: Tag) extends profile.api.Table[rUser](_tableTag, "user") {
-    def * = (id, userId, bbsId, sha1Pwd, createTime, sessionKey, lastLoginTime, mobile, email, headImg, city, gender, replyCnt, openCnt) <> (rUser.tupled, rUser.unapply)
+    def * = (id, userId, bbsId, sha1Pwd, createTime, sessionKey, lastLoginTime, mobile, email, headImg, city, gender, replyCnt, openCnt, firstItemTime1, firstItemTime2) <> (rUser.tupled, rUser.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(userId), Rep.Some(bbsId), Rep.Some(sha1Pwd), Rep.Some(createTime), Rep.Some(sessionKey), Rep.Some(lastLoginTime), Rep.Some(mobile), Rep.Some(email), Rep.Some(headImg), Rep.Some(city), Rep.Some(gender), Rep.Some(replyCnt), Rep.Some(openCnt)).shaped.<>({r=>import r._; _1.map(_=> rUser.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get, _11.get, _12.get, _13.get, _14.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(userId), Rep.Some(bbsId), Rep.Some(sha1Pwd), Rep.Some(createTime), Rep.Some(sessionKey), Rep.Some(lastLoginTime), Rep.Some(mobile), Rep.Some(email), Rep.Some(headImg), Rep.Some(city), Rep.Some(gender), Rep.Some(replyCnt), Rep.Some(openCnt), Rep.Some(firstItemTime1), Rep.Some(firstItemTime2)).shaped.<>({r=>import r._; _1.map(_=> rUser.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get, _11.get, _12.get, _13.get, _14.get, _15.get, _16.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(bigserial), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -300,6 +302,10 @@ trait SlickTables {
     val replyCnt: Rep[Int] = column[Int]("reply_cnt", O.Default(0))
     /** Database column open_cnt SqlType(int4), Default(0) */
     val openCnt: Rep[Int] = column[Int]("open_cnt", O.Default(0))
+    /** Database column first_item_time1 SqlType(int8), Default(0) */
+    val firstItemTime1: Rep[Long] = column[Long]("first_item_time1", O.Default(0L))
+    /** Database column first_item_time2 SqlType(int8), Default(0) */
+    val firstItemTime2: Rep[Long] = column[Long]("first_item_time2", O.Default(0L))
   }
   /** Collection-like TableQuery object for table tUser */
   lazy val tUser = new TableQuery(tag => new tUser(tag))
