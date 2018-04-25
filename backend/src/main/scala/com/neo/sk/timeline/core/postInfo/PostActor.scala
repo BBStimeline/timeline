@@ -8,6 +8,7 @@ import com.neo.sk.timeline.models.dao.{PostDAO, TopicDAO}
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
 import org.slf4j.LoggerFactory
 import com.neo.sk.timeline.Boot.{distributeManager, executor}
+import com.neo.sk.timeline.common.AppSettings
 import com.neo.sk.timeline.core.DistributeManager
 import com.neo.sk.timeline.core.postInfo.BoardActor.InsertPost
 import com.neo.sk.timeline.ptcl.PostProtocol.PostEvent
@@ -31,11 +32,15 @@ object PostActor {
                                    timeOut: TimeOut = TimeOut("busy time error")
                                  ) extends Command
   /**消息*/
-  private final case object PostIdleKey
-  case object PostIdleTimeout extends Command
+  private final case object PostSnapKey
+  case object PostSnapTimeout extends Command
+
+  private final case object PostWaitKey
+  case object PostWaitTimeout extends Command
 
 
-  private val keepSnapTime= 5.minutes
+  private val keepSnapTime= AppSettings.keepSnapTime.minutes
+  private val actorWait = AppSettings.postActorWait.minutes
   private val InitTime = Some(5.minutes)
 
   /**内置转换函数*/
@@ -53,14 +58,15 @@ object PostActor {
   def create(origin:Int,boardName:String,topicId:Long):Behavior[Command] = {
     Behaviors.setup[Command]{
       ctx =>
-        log.debug(s"${ctx.self.path} topic=${origin+"-"+boardName+"-"+topicId} is starting...")
+        log.debug(s"topic=${origin+"-"+boardName+"-"+topicId} is starting...")
         implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
         Behaviors.withTimers[Command]{ implicit timer =>
           val topicInfo=new mutable.HashMap[Long,SlickTables.rPosts]()
           TopicDAO.getPostById(origin,boardName,topicId).foreach{r=>
             ctx.self ! SwitchBehavior("idle",idle(topicInfo,r.getOrElse(SlickTables.rTopicSnapshot(origin,boardName,0l,0l,"",0l))))
           }
-          timer.startPeriodicTimer(PostIdleKey,PostIdleTimeout,keepSnapTime)
+          timer.startPeriodicTimer(PostSnapKey,PostSnapTimeout,keepSnapTime)
+          timer.startSingleTimer(PostWaitKey,PostWaitTimeout,actorWait)
           switchBehavior(ctx,"busy",busy(),InitTime,TimeOut("init"))
         }
     }
@@ -75,6 +81,13 @@ object PostActor {
                   ):Behavior[Command] = {
     Behaviors.immutable[Command]{ (ctx,msg) =>
       msg match {
+        case PostSnapTimeout=>
+        case _ =>
+          timer.cancel(PostWaitKey)
+          timer.startSingleTimer(PostWaitKey,PostWaitTimeout,actorWait)
+      }
+
+      msg match {
         case msg:GetTopicInfoReqMsg=>
           PostDAO.getPostsByBoardId(msg.origin,msg.board,msg.topicId).map{ps=>
             ps.map(p=>topicInfo.put(p.postId,p))
@@ -84,7 +97,7 @@ object PostActor {
               msg.replyTo ! Some(BoardManager.GetTopicInfoRsp(post2TopicInfo(msg.origin,topic,post)))
             }else{
               msg.replyTo ! None
-              Behaviors.stopped
+              switchBehavior(ctx,"busy",busy(),InitTime,TimeOut("init"))
             }
           }
           Behaviors.same
@@ -106,12 +119,16 @@ object PostActor {
           }
           switchBehavior(ctx,"busy",busy(),InitTime,TimeOut("init"))
 
-        case PostIdleTimeout=>
+        case PostSnapTimeout=>
           if(topicSnap.topicId!=0l){
             log.info(s"keepSnap with ${topicSnap.origin+"---"+topicSnap.boardName+"---"+topicSnap.topicId}")
             TopicDAO.insertOrUpdateTopicSnap(topicSnap)
           }
           Behaviors.same
+
+        case PostWaitTimeout=>
+          log.info(s"postActor--${topicSnap.origin+"-"+topicSnap.boardName+"-"+topicSnap.topicId} is stop")
+          Behaviors.stopped
 
         case x=>
           log.warn(s"unknown msg: $x")

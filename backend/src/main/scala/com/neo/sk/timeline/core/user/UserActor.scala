@@ -41,8 +41,13 @@ object UserActor {
   private final case object BehaviorChangeKey
   private final case object CleanFeedKey
 
+  private case object WaitingTimerKey
+
+  private case object WaitingTimeOut extends Command
+
   private val maxFeedLength = AppSettings.feedCnt
-  private val cleanFeedTime = 5.minutes
+  private val cleanFeedTime = AppSettings.feedClean.minutes
+  private val waitTime=AppSettings.actorWait.minutes
   private val defaultUser=AuthorInfo("","",0)
 
   def init(uid: Long): Behavior[Command] = {
@@ -108,6 +113,17 @@ object UserActor {
 
   def idle(user: UserActorInfo)(implicit stashBuffer: StashBuffer[Command], timer: TimerScheduler[Command]): Behavior[Command] = {
     Behaviors.immutable[Command] { (ctx, msg) =>
+
+      msg match {
+        case WaitingTimeOut =>
+
+        case msg:DisEvent=> //do nothing
+
+        case _ =>
+          timer.cancel(WaitingTimerKey)
+          timer.startSingleTimer(WaitingTimerKey, WaitingTimeOut, waitTime)
+      }
+
       msg match {
         case UserLogout(_,replyTo)=>
           replyTo ! "OK"
@@ -282,7 +298,6 @@ object UserActor {
           Behaviors.same
 
         case CleanFeed =>
-          val time=System.currentTimeMillis()
           val newFeeds=user.newFeed.toList.sortBy(_._1._5).reverse.take(maxFeedLength)
           val newReplyFeed=user.newReplyFeed.toList.sortBy(_._2._2).reverse.take(maxFeedLength)
           user.newFeed.clear()
@@ -294,9 +309,17 @@ object UserActor {
             user.newReplyFeed.put(r._1,r._2)
           }
           val feedList=(newFeeds:::newReplyFeed).map(r=>SlickTables.rUserFeed(0l,user.uid,r._1._2,r._1._3,r._1._4,r._2._1,r._1._5,r._2._2,r._1._1,getUserInfo(r._2._3)._1,getUserInfo(r._2._3)._2))
-          log.info(s"user-${user.uid} feedList cost ${System.currentTimeMillis()-time}")
           UserDAO.cleanFeed(user.uid, feedList)
           Behaviors.same
+
+        case WaitingTimeOut=>
+          val targetList = user.favBoards.map(i => (FeedType.BOARD, i._1 + "-" + i._2)).toList :::user.favTopic.map(i=>(FeedType.TOPIC,i._1+"-"+i._2+"-"+i._3)).toList ::: user.favUsers.map(i => (FeedType.USER, i._1 +"-"+i._2)).toList
+          targetList.foreach(r=>
+            distributeManager ! DistributeManager.QuitFollowObject(r._2,r._1,user.uid)
+          )
+          log.info(s"userActor--${user.uid} is stop")
+
+          Behaviors.stopped
 
         case x =>
           log.warn(s"unknown msg: $x")
@@ -340,4 +363,5 @@ object UserActor {
   private def getUserInfo(option: Option[AuthorInfo])={
     if(option.isEmpty) (None,None) else (Some(option.get.authorId),Some(option.get.authorName))
   }
+
 }

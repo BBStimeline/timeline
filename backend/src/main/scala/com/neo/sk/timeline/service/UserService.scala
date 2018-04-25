@@ -62,8 +62,8 @@ trait UserService extends ServiceUtils with SessionBase{
                       UserSessionKey.keyCode -> keyCode,
                       UserSessionKey.signature -> signature
                     )
-                    val headImg=if(r.get.headImg=="") AppSettings.defaultHeadImg else r.get.headImg
-                    val userDetail=UserInfoDetail(r.get.id,r.get.userId,r.get.bbsId,headImg)
+                    val headImg=AppSettings.defaultHeadImg
+                    val userDetail=UserInfoDetail(t,req.userId,"",headImg)
                     dealFutureResult(
                       UserDAO.updateSession(t,sessionKey).map{u=>
                         if(u>0){
@@ -88,6 +88,7 @@ trait UserService extends ServiceUtils with SessionBase{
         complete(ErrorRsp(10001,s"解析错误+$e"))
     }
   }
+
 
   private val userLogin = (path("userLogin") & post & pathEndOrSingleSlash) {
     entity(as[Either[Error, UserLoginReq]]) {

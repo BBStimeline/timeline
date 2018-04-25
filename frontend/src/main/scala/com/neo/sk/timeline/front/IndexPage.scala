@@ -24,10 +24,10 @@ object Component {
   implicit def component2Element(comp: Component): Elem = comp.render
 }
 
-@JSExportTopLevel("frontend.Main")
+//@JSExportTopLevel("frontend.Main")
 object Main {
 
-  @JSExport
+//  @JSExport
   def main(args: Array[String]): Unit = {
     MainEnter.show()
   }
