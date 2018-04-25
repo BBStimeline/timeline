@@ -152,3 +152,6 @@ CREATE TABLE syn_data(
   data  BIGINT DEFAULT 0  NOT NULL,
   note VARCHAR(100) NOT NULL DEFAULT ''
 );
+
+ALTER TABLE public."user" ADD first_item_time1 bigint DEFAULT 0 NOT NULL;
+ALTER TABLE public."user" ADD first_item_time2 bigint DEFAULT 0 NOT NULL;

@@ -25,7 +25,7 @@ import com.neo.sk.timeline.core.postInfo.BoardManager
 import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicList
 import com.neo.sk.timeline.core.user.UserManager
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
-import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, UserFeedRsp}
+import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, LastTimeRsp, UserFeedRsp}
 
 import scala.concurrent.duration._
 
@@ -152,21 +152,33 @@ trait UserService extends ServiceUtils with SessionBase{
     }
   }
 
+  private val getLastTime = (path("getLastTime") & get & pathEndOrSingleSlash) {
+    UserAction{u=>
+      val future: Future[(Long,Long)] = userManager ? (GetLastTime(u.uid,_))
+      dealFutureResult(
+        future.map{r=>
+          complete(LastTimeRsp(Some(r)))
+        }
+      )
+    }
+  }
+
   private val getFeedFlow = (path("getFeedFlow") & get & pathEndOrSingleSlash) {
     UserAction{ u =>
       parameters(
         'sortType.as[Int],
-        'lastItemTime.as[Long],
-        'pageSize.as[Int]
-      ) { case (sortType, lastItemTime, pageSize) =>
+        'itemTime.as[Long],
+        'pageSize.as[Int],
+        'up.as[Boolean]
+      ) { case (sortType, lastItemTime, pageSize,up) =>
         dealFutureResult {
-          val future: Future[Option[List[UserFeedReq]]] = userManager ? (GetUserFeed(u.uid, sortType, lastItemTime, pageSize, _))
+          val future: Future[Option[List[UserFeedReq]]] = userManager ? (GetUserFeed(u.uid, sortType, lastItemTime, pageSize,up, _))
           future.map {
             case Some(feeds) =>
               val futureTopic:Future[UserFeedRsp] = boardManager ? (GetTopicList(feeds,_))
               dealFutureResult {
                 futureTopic.map{topics=>
-                  complete(topics)
+                  if(topics.normalPost.getOrElse(Nil).size==0) complete(ErrorRsp(120001, "no more date")) else complete(topics)
                 }
               }
 //              val postIds=(feeds.map(r=>(r.board,r.topicId,r.origin)):::feeds.map(r=>(r.board,r.postId,r.origin))).toSet.toSeq
@@ -206,6 +218,6 @@ trait UserService extends ServiceUtils with SessionBase{
 
   val userRoutes: Route =
     pathPrefix("user") {
-      userIndex ~ userSign ~ userLogin ~ userLogout ~ getFeedFlow
+      userIndex ~ userSign ~ userLogin ~ userLogout ~ getFeedFlow ~ getLastTime
     }
 }
