@@ -44,15 +44,13 @@ object MainEnter extends PageSwitcher {
     case _ => <div>Error Page</div>
   }
 
-
-
   def show(): Cancelable = {
-    val page =
+   /* val page =
       <div style="height: 100%;width: 100%;">
-        {currentPage}
-      </div>
+
+      </div>*/
     switchPageByHash()
-    mount(dom.document.body, page)
+    mount(dom.document.body, {currentPage})
   }
 
 }

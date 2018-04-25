@@ -171,12 +171,14 @@ object LoginPage extends Index {
   val h = (dom.document.body.clientHeight - 280)/2
 
   override def render:Elem = {
-    <div style="background:url(../static/img/back-1.png);height:100%" backgroundSize="100% 100%" width={w+"px"}>
-      <div width="100%" height={h+"px"}></div>
-      <div class="pure-u-1-8"></div>
-      <div class="pure-u-3-4" position="relative"></div>
-      {loginDiv}
-      {signDiv}
+    <div style="height: 100%;width: 100%;">
+      <div style="background:url(../static/img/back-1.png);height:100%" backgroundSize="100% 100%" width={w+"px"}>
+        <div width="100%" height={h+"px"}></div>
+        <div class="pure-u-1-8"></div>
+        <div class="pure-u-3-4" position="relative"></div>
+        {loginDiv}
+        {signDiv}
+      </div>
     </div>
   }
 

@@ -45,7 +45,7 @@ object PostActor {
   private def post2TopicInfo(origin:Int,t:SlickTables.rPosts,p:SlickTables.rPosts)={
     Post(
       origin,t.boardName,t.boardNameCn,p.postId,p.topicId,t.title,img2ImgList(p.imgs),
-      img2ImgList(p.hestiaImgs),Some(p.content),AuthorInfo(p.authorId,p.authorName,p.origin),p.postTime,
+      img2ImgList(p.hestiaImgs),p.content,AuthorInfo(t.authorId,t.authorName,t.origin),AuthorInfo(p.authorId,p.authorName,p.origin),t.postTime,p.postTime,
       None,isMain = true
     )
   }
@@ -76,7 +76,7 @@ object PostActor {
     Behaviors.immutable[Command]{ (ctx,msg) =>
       msg match {
         case msg:GetTopicInfoReqMsg=>
-          PostDAO.getPostsByBoardId(topicSnap.origin,topicSnap.boardName,topicSnap.topicId).map{ps=>
+          PostDAO.getPostsByBoardId(msg.origin,msg.board,msg.topicId).map{ps=>
             ps.map(p=>topicInfo.put(p.postId,p))
             if(topicInfo.contains(msg.topicId)){
               val topic=topicInfo(msg.topicId)

@@ -39,7 +39,7 @@ object BoardManager {
           rspFuture.map{topics=>
             var normalPost:List[FeedPost]=Nil
             topics.foreach{t=>if(!t.isEmpty) normalPost::=FeedPost(t.get.topic,t.get.topic.postTime)}
-            msg.replyTo ! UserFeedRsp(normalPost.sortBy(_.time).reverse)
+            msg.replyTo ! UserFeedRsp(Some(normalPost.sortBy(_.time).reverse))
           }
           Behaviors.same
 
