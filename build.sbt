@@ -49,7 +49,6 @@ lazy val frontend = (project in file("frontend"))
     ))
   .settings(skip in packageJSDependencies := false)
   .settings(
-
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
       "io.circe" %%% "circe-core" % "0.8.0",

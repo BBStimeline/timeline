@@ -59,6 +59,7 @@ object DistributeManager {
           Behaviors.same
 
         case msg:ChildDead=>
+          log.info(s"${msg.name} is dead")
           objectHash.remove(msg.name,msg.variety)
           Behaviors.same
 

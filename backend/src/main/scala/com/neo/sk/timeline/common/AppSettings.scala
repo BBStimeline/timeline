@@ -71,7 +71,13 @@ object AppSettings {
   val rechargeFeeMax = dependenceConfig.getInt("rechargeFeeMax")
   val isTest = dependenceConfig.getBoolean("isTest")
   val authCheck = dependenceConfig.getBoolean("authCheck")
+
   val feedCnt = dependenceConfig.getInt("feedCnt")
+  val feedClean = dependenceConfig.getInt("feedClean")
+  val actorWait = dependenceConfig.getInt("actorWait")
+  val checkObjTime = dependenceConfig.getInt("checkObjTime")
+  val keepSnapTime = dependenceConfig.getInt("keepSnapTime")
+  val postActorWait = dependenceConfig.getInt("postActorWait")
 
 
   val smallSpiderConfig = appConfig.getConfig("smallSpider")

@@ -9,6 +9,7 @@ import com.neo.sk.timeline.ptcl.UserProtocol._
 import scala.concurrent.duration._
 import scala.collection.mutable
 import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout, userManager}
+import com.neo.sk.timeline.common.AppSettings
 import com.neo.sk.timeline.common.Constant.FeedType
 import com.neo.sk.timeline.core.user.UserManager.UserLogout
 import com.neo.sk.timeline.ptcl.DistributeProtocol.{DisCache, DisType, FeedListInfo}
@@ -40,6 +41,7 @@ object DistributeActor {
   /**配置文件中参数*/
   private val boardBatch=500
   private val userBatch=50
+  private val checkTime=AppSettings.checkObjTime.minutes
 
   def init(name:String,variety:Int,paramOpt:Option[DisType]): Behavior[Command] = {
     Behaviors.setup[Command] { ctx =>
@@ -95,7 +97,7 @@ object DistributeActor {
               ctx.self ! SwitchBehavior("idle", idle(DisCache(newPost = newPost, newReplyPost=newReplyPost,name =name ,variety= variety)))
           }
         }
-        timer.startPeriodicTimer(CheckObjectKey,CheckObjectTimeOut,5.minutes)
+        timer.startPeriodicTimer(CheckObjectKey,CheckObjectTimeOut,checkTime)
         switchBehavior(ctx, "busy", busy(), Some(3.minutes), TimeOut("init"))
       }
     }

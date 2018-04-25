@@ -35,7 +35,9 @@ CREATE TABLE board(
   id             BIGINT PRIMARY KEY DEFAULT nextval('board_id_seq'),
   board_name     VARCHAR(50)            NOT NULL,
   board_name_cn  VARCHAR(50)            NOT NULL, --显示的名称
-  origin         INT NOT NULL --板块源
+  origin         INT NOT NULL, --板块源
+  first_spell    varchar(2) default 'Z' :: character varying        not null,
+  post_today_num integer default 0                                  not null
 );
 
 --记录发帖事件以及帖子真实内容
@@ -48,7 +50,7 @@ CREATE TABLE posts (
   is_main       bool          NOT NULL, --是否为主贴 1是 0否
   title         VARCHAR(127) NOT NULL, --帖子标题
   author_id     VARCHAR(64) DEFAULT '', --作者id
-  author_name   VARCHAR(31)  NOT NULL, --作者name--bbsId or unionId
+  author_name   VARCHAR(64)  NOT NULL, --作者name--bbsId or unionId
   content  TEXT         NOT NULL, --帖子文本内容
   imgs          TEXT         NOT NULL, --帖子图片url，以;分隔
   hestia_imgs   TEXT         NOT NULL, --帖子图片url，以;分隔
@@ -58,7 +60,8 @@ CREATE TABLE posts (
   board_name_cn VARCHAR(31)  NOT NULL, --版面中文名称
   quote_id      BIGINT,
   update_time   BIGINT       NOT NULL,  --编辑时间
-  state         int NOT NULL DEFAULT 0--0:正常，1更新帖，2：用户删帖，3：管理员删帖
+  state         int NOT NULL DEFAULT, 0--0:正常，1更新帖，2：用户删帖，3：管理员删帖
+  pid           bigint default 0                                   not null
 );
 CREATE UNIQUE Index boardName_postId_index on posts(origin,board_name,post_id);
 CREATE Index boardName_postId_id_index on posts(origin,board_name,post_id,id);
