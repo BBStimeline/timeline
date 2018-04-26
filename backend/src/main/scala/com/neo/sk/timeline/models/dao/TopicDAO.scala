@@ -32,4 +32,8 @@ object TopicDAO {
     db.run(tTopicSnapshot.filter(r=>r.origin===origin&&r.boardName===board&&r.topicId===topicId).result.headOption)
   }
 
+  def getHotBoard={
+    db.run(tTopicSnapshot.groupBy(r=>(r.origin,r.boardName)).map(t=>(t._1,t._2.size)).sortBy(_._2.desc).take(10).result)
+  }
+
 }

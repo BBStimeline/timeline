@@ -29,6 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object MainPage extends Index {
   override val locationHashString="#/MainPage"
 
+  var initCome=true
   val bottom = Var(emptyHTML)//指示滑到底部
   var lastItemTime1=System.currentTimeMillis() //保存当前最后Item时间
   var lastItemTime2=System.currentTimeMillis() //保存当前最后Item时间
@@ -54,7 +55,7 @@ object MainPage extends Index {
     case _ => "outer"
   }
   val enter:Var[Node]=Var(
-    <div class="enter" left={(w/2-25)+"px"} top="40%"></div>
+    <div class="enter" left={(w/2-25)+"px"} top="40%" style="background:url(../static/img/back-1.png)"></div>
   )
 
   val articleList=Var(
@@ -122,7 +123,7 @@ object MainPage extends Index {
           enter:=makeList(list)
         }else{
           println(s"get list error: ${rsp.msg}")
-          JsFunc.alert("get list error")
+          JsFunc.alert(rsp.msg)
           enter:=makeList(list)
         }
       case Left(error) =>
@@ -209,7 +210,7 @@ object MainPage extends Index {
     list = List.empty[FeedPost]
     lastItemTime1=firstItemTime1+1
     lastItemTime2=firstItemTime2+1
-    enter:= <div class="enter" left={(w/2-25)+"px"} top="40%"></div>
+    enter:= <div class="enter" left={(w/2-25)+"px"} top="40%" style="background:url(../static/img/back-1.png)"></div>
     getTopicList(sortType,false)
     println(sortType)
   }
@@ -217,11 +218,16 @@ object MainPage extends Index {
   def getUpTopicList:Unit={getTopicList(sortType,true)}
 
   def getLastTime={
+    list=List.empty[FeedPost]
     Http.getAndParse[UserFollowProtocol.LastTimeRsp](Routes.UserRoutes.getLastTime).map {
       case Right(rsp) =>
         if (rsp.errCode == 0) {
           lastItemTime1=rsp.first.get._1
           lastItemTime2=rsp.first.get._2
+          if(lastItemTime1==0l&&lastItemTime2==0l&&initCome) {
+            initCome=false
+            Shortcut.redirect("#/BoardListPage")
+          }
           if(lastItemTime1==0l) lastItemTime1=System.currentTimeMillis()
           if(lastItemTime2==0l) lastItemTime2=System.currentTimeMillis()
           getTopicList(sortType,false)

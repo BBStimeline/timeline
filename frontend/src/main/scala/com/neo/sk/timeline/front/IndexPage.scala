@@ -1,11 +1,11 @@
 package com.neo.sk.timeline.front
 
-import com.neo.sk.timeline.front.pages.{LoginPage, MainPage}
+import com.neo.sk.timeline.front.pages.{BoardListPage, LoginPage, MainPage}
 import mhtml._
 import org.scalajs.dom
 
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
-import scala.xml.{Elem}
+import scala.xml.Elem
 import scala.language.implicitConversions
 /**
   * User: sky
@@ -38,9 +38,10 @@ object Main {
 object MainEnter extends PageSwitcher {
 
   val currentPage: Rx[Elem] = currentHashVar.map {
-    case Nil => LoginPage.render
+    case Nil => MainPage.render
     case "LoginPage" :: Nil => LoginPage.render
     case "MainPage" :: Nil => MainPage.render
+    case "BoardListPage" ::Nil => BoardListPage.render
     case _ => <div>Error Page</div>
   }
 

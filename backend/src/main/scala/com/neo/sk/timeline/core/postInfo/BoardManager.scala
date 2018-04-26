@@ -1,17 +1,18 @@
 package com.neo.sk.timeline.core.postInfo
 
 import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
 import com.neo.sk.timeline.core.DistributeManager
 import com.neo.sk.timeline.core.postInfo.PostActor
 import com.neo.sk.timeline.ptcl.UserProtocol.UserFeedReq
-import com.neo.sk.timeline.ptcl.PostProtocol.PostEvent
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.{Post}
+import com.neo.sk.timeline.ptcl.PostProtocol.{HotBoards, PostEvent}
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, UserFeedRsp}
 import org.slf4j.LoggerFactory
 import com.neo.sk.timeline.models.SlickTables.rPosts
+import com.neo.sk.timeline.models.dao.{BoardDAO, TopicDAO}
 
 import scala.concurrent.Future
 /**
@@ -24,14 +25,28 @@ object BoardManager {
   sealed trait Command
   final case class GetTopicList(req:List[UserFeedReq],replyTo:ActorRef[UserFeedRsp]) extends Command
   final case class InsertPostList(list:List[rPosts]) extends Command
+  final case class GetHotBoard(replyTo:ActorRef[List[(Int,String,String)]]) extends Command
 
   /**通用消息*/
   case class GetTopicInfoReqMsg(origin:Int,board:String,topicId:Long,postId:Long,replyTo:ActorRef[Option[GetTopicInfoRsp]]) extends Command with BoardActor.Command with PostActor.Command
   case class GetTopicInfoRsp(topic:Post)/*extends Command with BoardActor.Command with PostActor.Command*/
 
-  val behavior: Behavior[Command] = init()
+  val behavior: Behavior[Command] = {
+    Behaviors.setup[Command]{
+      ctx=>
+        Behaviors.withTimers[Command]{implicit timer=>
+          TopicDAO.getHotBoard.map{bs=>
+            BoardDAO.getBoardList(bs.map(r=> r._1)).map{ ts=>
+              init(HotBoards(ts.toList))
+          }
+        }
+          init(HotBoards(Nil))
+    }
+  }
+  }
 
-  private def init(): Behavior[Command] = {
+
+  private def init(hotBoards:HotBoards)(implicit timer:TimerScheduler[Command]): Behavior[Command] = {
     Behaviors.immutable[Command] { (ctx,msg) =>
       msg match {
         case msg:GetTopicList=>
@@ -49,6 +64,11 @@ object BoardManager {
 //            distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
           }
           Behaviors.same
+
+        case msg:GetHotBoard=>
+          msg.replyTo ! hotBoards.hotBoards
+          Behaviors.same
+
 
         case x=>
           log.warn(s"unknown msg: $x")

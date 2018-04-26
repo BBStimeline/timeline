@@ -63,4 +63,11 @@ object UserFollowProtocol {
                         errCode:Int=0,
                         msg:String="OK"
                         )
+
+  case class GetHotBoardsListRsp(
+                                hotBoards:Option[List[(Int,String,String)]],
+                                myBoards :Option[List[(Int,String,String)]],
+                                errCode:Int=0,
+                                msg:String="OK"
+                                )
 }
