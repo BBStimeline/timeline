@@ -34,7 +34,7 @@ object UserActor {
                                    durationOpt: Option[FiniteDuration] = None,
                                    timeOut: TimeOut = TimeOut("busy time error")
                                  ) extends Command
-  final case class RefreshFeed(sortType: Option[Int], pageSize: Option[Int], replyTo: Option[ActorRef[Option[List[UserFeedReq]]]]) extends Command
+  final case class RefreshFeed(sortType: Int,itemTime:Long, pageSize: Int,up:Boolean, replyTo:ActorRef[Option[List[UserFeedReq]]]) extends Command
 
   final case object CleanFeed extends Command
 
@@ -49,7 +49,7 @@ object UserActor {
 
   private val maxFeedLength = AppSettings.feedCnt
   private val cleanFeedTime = AppSettings.feedClean.minutes
-  private val waitTime=30.seconds
+  private val waitTime=AppSettings.actorWait.minutes
   private val defaultUser=AuthorInfo("","",0)
 
   def init(uid: Long): Behavior[Command] = {
@@ -246,32 +246,34 @@ object UserActor {
           msg.sortType match {
             case 1 => //根据创建时间
               if(msg.up){
-                if (user.newFeed.isEmpty || msg.itemTime < user.newFeed.map(_._1._5).min) {
-                  msg.replyTo ! None
+                println("--------------1")
+                if (user.newFeed.isEmpty || msg.itemTime >= user.newFeed.map(_._1._5).max) {
+                  ctx.self ! RefreshFeed(msg.sortType,msg.itemTime,msg.pageSize,msg.up,msg.replyTo)
                 }else{
                   val list=user.newFeed.filter(_._1._5 > msg.itemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._1._5)).toList.sortBy(_.time).take(msg.pageSize).reverse
-                  itemTime.time1=list.head.time
+                  itemTime.time1=list.head.time+1
+                  println(itemTime)
                   msg.replyTo ! Some(list)
                 }
               }else{
-                if (user.newFeed.isEmpty || msg.itemTime > user.newFeed.map(_._1._5).max) {
-                  ctx.self ! RefreshFeed(Some(msg.sortType), Some(msg.pageSize), Some(msg.replyTo))
+                if (user.newFeed.isEmpty || msg.itemTime <= user.newFeed.map(_._1._5).min) {
+                  msg.replyTo ! None
                 } else {
                   msg.replyTo ! Some(user.newFeed.filter(_._1._5 < msg.itemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize))
                 }
               }
             case 2 => //根据最新回复时间
               if(msg.up){
-                if (user.newFeed.isEmpty || msg.itemTime < user.newReplyFeed.map(_._1._5).min) {
-                  msg.replyTo ! None
+                if (user.newFeed.isEmpty || msg.itemTime >= user.newReplyFeed.map(_._2._2).max) {
+                  ctx.self ! RefreshFeed(msg.sortType,msg.itemTime,msg.pageSize,msg.up,msg.replyTo)
                 }else{
-                  val list=user.newReplyFeed.filter(_._2._2 > msg.itemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._1._5)).toList.sortBy(_.time).take(msg.pageSize).reverse
-                  itemTime.time2=list.head.time
+                  val list=user.newReplyFeed.filter(_._2._2 > msg.itemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._2._2)).toList.sortBy(_.time).take(msg.pageSize).reverse
+                  itemTime.time2=list.head.time+1
                   msg.replyTo ! Some(list)
                 }
               }else{
-                if (user.newReplyFeed.isEmpty || msg.itemTime > user.newReplyFeed.map(_._2._2).max) {
-                  ctx.self ! RefreshFeed(Some(msg.sortType), Some(msg.pageSize), Some(msg.replyTo))
+                if (user.newReplyFeed.isEmpty || msg.itemTime <= user.newReplyFeed.map(_._2._2).min) {
+                  msg.replyTo ! None
                 } else {
                   msg.replyTo ! Some(user.newReplyFeed.filter(_._2._2 < msg.itemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize))
                 }
@@ -309,17 +311,39 @@ object UserActor {
           }.onComplete{
             case Success(_) =>
               msg.sortType match {
-                case Some(sortType) =>
-                  if (sortType == 1) {
-                    val list=user.newFeed.map(i => UserFeedReq(i._1._2, i._1._3, i._1._4, i._2._1, i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize.get)
-                    itemTime.time1=list.head.time
-                    msg.replyTo.get ! Some(list)
-                  }else{
-                    val list=user.newReplyFeed.map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize.get)
-                    itemTime.time2=list.head.time
-                    msg.replyTo.get ! Some(list)
+                case 1 => //根据创建时间
+                  if (msg.up) {
+                    if (user.newFeed.isEmpty || msg.itemTime >= user.newFeed.map(_._1._5).max) {
+                      msg.replyTo ! None
+                    } else {
+                      val list = user.newFeed.filter(_._1._5 > msg.itemTime).map(i => UserFeedReq(i._1._2, i._1._3, i._1._4, i._2._1, i._1._5)).toList.sortBy(_.time).take(msg.pageSize).reverse
+                      itemTime.time1 = list.head.time+1
+                      println(itemTime)
+                      msg.replyTo ! Some(list)
+                    }
+                  } else {
+                    if (user.newFeed.isEmpty || msg.itemTime <= user.newFeed.map(_._1._5).min) {
+                      msg.replyTo ! None
+                    } else {
+                      msg.replyTo ! Some(user.newFeed.filter(_._1._5 < msg.itemTime).map(i => UserFeedReq(i._1._2, i._1._3, i._1._4, i._2._1, i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize))
+                    }
                   }
-                case None => //
+                case 2 => //根据最新回复时间
+                  if (msg.up) {
+                    if (user.newFeed.isEmpty || msg.itemTime >= user.newReplyFeed.map(_._2._2).max) {
+                      msg.replyTo ! None
+                    } else {
+                      val list = user.newReplyFeed.filter(_._2._2 > msg.itemTime).map(i => UserFeedReq(i._1._2, i._1._3, i._1._4, i._2._1, i._2._2)).toList.sortBy(_.time).take(msg.pageSize).reverse
+                      itemTime.time2 = list.head.time+1
+                      msg.replyTo ! Some(list)
+                    }
+                  } else {
+                    if (user.newReplyFeed.isEmpty || msg.itemTime <= user.newReplyFeed.map(_._2._2).min) {
+                      msg.replyTo ! None
+                    } else {
+                      msg.replyTo ! Some(user.newReplyFeed.filter(_._2._2 < msg.itemTime).map(i => UserFeedReq(i._1._2, i._1._3, i._1._4, i._2._1, i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize))
+                    }
+                  }
               }
             case Failure(_) =>
               log.debug(s"${ctx.self.path} RefreshFeed fail.....")

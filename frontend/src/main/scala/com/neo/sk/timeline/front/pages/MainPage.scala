@@ -89,10 +89,10 @@ object MainPage extends Index {
          lastItemTime2=list.last.time
          firstItemTime2=list.head.time
        }
-       println("lastTime1"+lastItemTime1)
-       println("lastTime2"+lastItemTime2)
-       println("firstTime1"+firstItemTime1)
-       println("firstTime2"+firstItemTime2)
+       println("lastTime1--"+lastItemTime1)
+       println("lastTime2--"+lastItemTime2)
+       println("firstTime1--"+firstItemTime1)
+       println("firstTime2--"+firstItemTime2)
        list.map(p=>row(p))
       }
     </div>
@@ -110,6 +110,10 @@ object MainPage extends Index {
           list = if(up) List(rsp.normalPost.get,list).flatten else List(list,rsp.normalPost.get).flatten
           enter:= makeList(list)
           isFetching=0
+          if(up){
+            document.body.scrollTop = 0
+            document.documentElement.scrollTop = 0
+          }
         } else if(rsp.errCode == 123456){
           JsFunc.alert("Session Error")
           Shortcut.redirect("#/LoginPage")
@@ -118,14 +122,14 @@ object MainPage extends Index {
           enter:=makeList(list)
         }else{
           println(s"get list error: ${rsp.msg}")
-          enter := <div height="100%"><h5>get list error</h5></div>
+          JsFunc.alert("get list error")
+          enter:=makeList(list)
         }
       case Left(error) =>
         println(s"get list error: $error")
-        enter := <div height="100%"><h5>get list error</h5></div>
+        enter:=makeList(list)
     }
-//      document.body.scrollTop = 0
-//      document.documentElement.scrollTop = 0
+
     }
 
 /*  //tabBar的按钮
@@ -203,6 +207,8 @@ object MainPage extends Index {
   def sortTypeChange={
     sortType=dom.document.getElementById("sortType").asInstanceOf[Input].value.toInt
     list = List.empty[FeedPost]
+    lastItemTime1=firstItemTime1+1
+    lastItemTime2=firstItemTime2+1
     enter:= <div class="enter" left={(w/2-25)+"px"} top="40%"></div>
     getTopicList(sortType,false)
     println(sortType)
