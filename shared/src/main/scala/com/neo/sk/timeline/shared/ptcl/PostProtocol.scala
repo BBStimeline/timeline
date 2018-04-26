@@ -20,7 +20,7 @@ object PostProtocol {
                          origin:Int // 0：水木本身发帖用户 ,1水木plus用户
                        )
 
-  case class Post(
+  case class TopicInfo(
                    origin:Int,
                    boardName:String,
                    boardNameCn:String,
@@ -40,5 +40,36 @@ object PostProtocol {
                    isDelete:Option[Boolean]=None,
                    isMain:Boolean
                  )
+
+  case class GetPostListReq(
+                        origin:Int,
+                        board:String,
+                        topicId:Long
+                        )
+
+  case class PostInfo(
+                       origin:Int,
+                       boardName:String,
+                       boardNameCn:String,
+                       postId:Long,
+                       topicId:Long,
+                       quoteId:Option[Long],
+                       tittle: String,
+                       imgs:List[String],
+                       hestiaImg:List[String],
+                       content:String,//文章内容
+                       author: AuthorInfo,
+                       postTime:Long,
+                       myVote:Option[Int]=None,//0:没有投票，1：顶，-1：踩
+                       isAttach: Option[Boolean]=None,
+                       isDelete:Option[Boolean]=None,
+                       isMain:Boolean
+                     )
+
+  case class GetPostListRsp(
+                           list:Option[List[PostInfo]],
+                           errCode:Int=0,
+                           msg:String="OK"
+                           )
 
 }

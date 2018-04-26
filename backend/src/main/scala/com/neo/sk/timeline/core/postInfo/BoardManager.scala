@@ -6,9 +6,10 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.neo.sk.timeline.Boot.{distributeManager, executor, scheduler, timeout}
 import com.neo.sk.timeline.core.DistributeManager
 import com.neo.sk.timeline.core.postInfo.PostActor
+import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.ptcl.UserProtocol.UserFeedReq
 import com.neo.sk.timeline.ptcl.PostProtocol.{HotBoards, PostEvent}
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.TopicInfo
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, UserFeedRsp}
 import org.slf4j.LoggerFactory
 import com.neo.sk.timeline.models.SlickTables.rPosts
@@ -26,10 +27,11 @@ object BoardManager {
   final case class GetTopicList(req:List[UserFeedReq],replyTo:ActorRef[UserFeedRsp]) extends Command
   final case class InsertPostList(list:List[rPosts]) extends Command
   final case class GetHotBoard(replyTo:ActorRef[List[(Int,String,String)]]) extends Command
+  final case class GetPostList(origin:Int,board:String,topicId:Long,replyTo:ActorRef[List[SlickTables.rPosts]]) extends Command with BoardActor.Command with PostActor.Command
 
   /**通用消息*/
   case class GetTopicInfoReqMsg(origin:Int,board:String,topicId:Long,postId:Long,replyTo:ActorRef[Option[GetTopicInfoRsp]]) extends Command with BoardActor.Command with PostActor.Command
-  case class GetTopicInfoRsp(topic:Post)/*extends Command with BoardActor.Command with PostActor.Command*/
+  case class GetTopicInfoRsp(topic:TopicInfo)/*extends Command with BoardActor.Command with PostActor.Command*/
 
   val behavior: Behavior[Command] = {
     Behaviors.setup[Command]{
@@ -69,6 +71,9 @@ object BoardManager {
           msg.replyTo ! hotBoards.hotBoards
           Behaviors.same
 
+        case msg:GetPostList=>
+          getBoard(ctx,msg.origin,msg.board) ! msg
+          Behaviors.same
 
         case x=>
           log.warn(s"unknown msg: $x")

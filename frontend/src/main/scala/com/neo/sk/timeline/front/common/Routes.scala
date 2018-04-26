@@ -6,6 +6,8 @@ object Routes {
     private val baseUrl = "/timeline/user"
     val login= baseUrl +"/userLogin"
 
+    val logout = baseUrl + "/userLogout"
+
     val signUp = baseUrl + "/userSign"
 
     /**检查Session*/
@@ -22,11 +24,18 @@ object Routes {
     private val baseUrl = "/timeline/follow"
     val addFollowBoard = baseUrl + "/addFollowBoard"
     val unFollowBoard = baseUrl + "/unFollowBoard"
+    val addFollowTopic = baseUrl + "/addFollowTopic"
+    val addFollowUser = baseUrl + "/addFollowUser"
   }
 
   object BoardRoutes{
     private val baseUrl = "/timeline/board"
     val hotBoards = baseUrl + "/hotBoards"
+  }
+
+  object PostRoutes{
+    private val baseUrl = "/timeline/post"
+    val getPostList = baseUrl + "/getPostList"
   }
 
 }

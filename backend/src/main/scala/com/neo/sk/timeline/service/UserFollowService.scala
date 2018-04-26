@@ -74,7 +74,7 @@ trait UserFollowService extends ServiceUtils with SessionBase{
                 else {
                   dealFutureResult {
                     FollowDAO.addFollowTopic(SlickTables.rUserFollowTopic(-1l, u.uid, req.boardName, req.topicId,System.currentTimeMillis(), 0, req.origin)).map { r =>
-                      userManager ! UserFollowTopicMsg(u.uid, PostBaseInfo(req.origin, req.boardName, req.topicId,req.time))
+                      userManager ! UserFollowTopicMsg(u.uid, PostBaseInfo(req.origin, req.boardName, req.topicId,0l))
                       complete(SuccessRsp())
                     }.recover {
                       case e: Exception =>

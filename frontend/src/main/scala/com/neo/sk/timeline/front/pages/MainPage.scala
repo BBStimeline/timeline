@@ -5,12 +5,12 @@ import com.neo.sk.timeline.front.Index
 import com.neo.sk.timeline.front.common.{PageRoute, Routes}
 import com.neo.sk.timeline.front.components.CommonCheck
 import com.neo.sk.timeline.front.utils.{Http, JsFunc, Shortcut, TimeTool}
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.TopicInfo
 import mhtml._
 import org.scalajs.dom
 import org.scalajs.dom._
 import org.scalajs.dom.html.{Input, TextArea}
-import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol
+import com.neo.sk.timeline.shared.ptcl.{SuccessRsp, UserFollowProtocol}
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.FeedPost
 
 import scala.scalajs.js.Date
@@ -29,7 +29,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object MainPage extends Index {
   override val locationHashString="#/MainPage"
 
+  var fromOther=false
   var initCome=true
+  var bodyH=0.0
+  var docH=0.0 //保存位置
   val bottom = Var(emptyHTML)//指示滑到底部
   var lastItemTime1=System.currentTimeMillis() //保存当前最后Item时间
   var lastItemTime2=System.currentTimeMillis() //保存当前最后Item时间
@@ -42,7 +45,6 @@ object MainPage extends Index {
   val tabBarCon=Var(0)
   var isFetching = 0
 
-  val orderList:Var[Node] = Var(emptyHTML) //排序方式
 
   val tabBarText=tabBarCon.map{
     case 1 => "+"
@@ -67,12 +69,15 @@ object MainPage extends Index {
 
   def makeList(list: List[FeedPost]):Node= {
     def row(post:FeedPost) = {
-        <div class="article-item">
+        <div class="article-item" onclick={()=>
+//          bodyH = document.body.scrollTop
+//          docH = document.documentElement.scrollTop
+          Shortcut.redirect(s"#/ArticlePage/${post.post.origin}/${post.post.boardName}/${post.post.topicId}")}>
           <h4 class="topic">{post.post.tittle}</h4>
           <div class="name">
-            <span>{post.post.mainPostAuthor.authorId+"    发表于 "+TimeTool.DateFormatter(new Date(post.post.mainPostTime),"yyyy-MM-dd hh:mm:ss")}</span>
+            <span>{post.post.mainPostAuthor.authorName+"    发表于 "+TimeTool.DateFormatter(new Date(post.post.mainPostTime),"yyyy-MM-dd hh:mm:ss")}</span>
           </div>
-          <div class="content">{post.post.content.substring(0,100)}</div>
+          <div class="content">{post.post.content.substring(0,100).replaceAll("&nbsp;", "").replaceAll("&gt;", ">").replaceAll("<([\\s\\S])+?>", "").replaceAll("<a([\\s\\S])+?\\/a>", "").replaceAll("<\\/font>", "")}</div>
           {if(sortType==1) <div></div> else
           <div class="name" style="text-align: right;color: darkolivegreen;">
           <span>{post.post.author.authorName+"    回复于 "+TimeTool.DateFormatter(new Date(post.post.postTime),"yyyy-MM-dd hh:mm:ss")}</span>
@@ -133,59 +138,37 @@ object MainPage extends Index {
 
     }
 
-/*  //tabBar的按钮
-  val tab1 = img(*.src:="/hw1701a/static/image/return.png",*.left:="-60px",*.top:="20px").render
-  val tab2 = img(*.src:="/hw1701a/static/image/search_white.png",*.left:="60px",*.top:="-60px").render
-  val tab3 = img(*.src:="/hw1701a/static/image/brush.png",*.left:="180px",*.top:="20px").render
-  tab1.onclick={
-    e:MouseEvent=>
-      //根据登录状态判定去登录or登出
-      e.preventDefault()
-      if(window.localStorage.getItem("user")!=null && window.localStorage.getItem("user").length()>0){
-        val confirm = dom.window.confirm(s"真的要退出吗！")
-        if (confirm) {
-          Http.getAndParse[CommonRsp](UserRoute.logout).map{
-            case Right(rsp) =>
-              if (rsp.errCode == 0) {
-                window.localStorage.setItem("user","")
-                Shortcut.redirect(UserRoute.login)
-              } else {
-                JsFunc.alert(s"delete failed: ${rsp.msg}")
-              }
-            case Left(err) =>
-              println(s"delete failed: ${err.getMessage}")
-              JsFunc.alert(s"delete failed: ${err.getMessage}")
+  def logOut:Unit={
+    val confirm = dom.window.confirm(s"真的要退出吗！")
+    if (confirm) {
+      Http.getAndParse[SuccessRsp](Routes.UserRoutes.logout).map{
+        case Right(rsp) =>
+          if (rsp.errCode == 0) {
+            fromOther=false
+            initCome=true
+            sortType=1 //排序方式
+            list = List.empty[FeedPost]
+            tabBarCon:=0
+            isFetching = 0
+            dom.window.localStorage.removeItem("userId")
+            dom.window.localStorage.removeItem("uId")
+            dom.window.localStorage.removeItem("bbsId")
+            dom.window.localStorage.removeItem("face_url")
+            Shortcut.redirect("#/LoginPage")
+          } else {
+            JsFunc.alert(s"delete failed: ${rsp.msg}")
           }
-        }
+        case Left(err) =>
+          println(s"delete failed: ${err.getMessage}")
+          JsFunc.alert(s"delete failed: ${err.getMessage}")
       }
-      else {
-        Shortcut.redirect(UserRoute.login)
-      }
+    }
   }
-  tab2.onclick={
-    e:MouseEvent=>
-      //去搜索
-      e.preventDefault()
-      Shortcut.redirect(UserRoute.search)
-  }
-  tab3.onclick={
-    e:MouseEvent=>
-      //根据登录状态判定去发帖or登录
-      e.preventDefault()
-      if(window.localStorage.getItem("user")!=null && window.localStorage.getItem("user").length()>0){
-        Shortcut.redirect(UserRoute.postArticle)
-      }
-      else {
-        Shortcut.redirect(UserRoute.login)
-      }
-  }*/
-
-  //tabBar
   val rotate = Var(
     <div class={rotateClass} style={"position:fixed;left:"+(w/2-160)+"px"}>
-      <img src="../static/img/return.png" style="left: -60px;top: 20px;"></img>
-      <img src="../static/img/search_white.png" style="left: 60px;top: -60px;"></img>
-      <img src="../static/img/brush.png" style="left: 180px;top: 20px;"></img>
+      <img src="../static/img/return.png" style="left: -60px;top: 20px;" onclick={()=>logOut}></img>
+      <img src="../static/img/search_white.png" style="left: 60px;top: -60px;" onclick={()=>JsFunc.alert("前端开发中")}></img>
+      <img src="../static/img/brush.png" style="left: 180px;top: 20px;" onclick={()=>JsFunc.alert("前端开发中")}></img>
     </div>
   )
 
@@ -219,6 +202,7 @@ object MainPage extends Index {
 
   def getLastTime={
     list=List.empty[FeedPost]
+    fromOther=false
     Http.getAndParse[UserFollowProtocol.LastTimeRsp](Routes.UserRoutes.getLastTime).map {
       case Right(rsp) =>
         if (rsp.errCode == 0) {
@@ -243,14 +227,20 @@ object MainPage extends Index {
   }
 
   override def render:Elem = {
+    tabBarCon:=0
     dom.window.addEventListener("touchmove", fetchNewDataPost, useCapture = false)
 //    CommonCheck.checkSession
-    getLastTime
+    if(!fromOther) getLastTime /*else{
+      println("------1")
+      println(bodyH)
+      document.body.scrollTop = bodyH
+      document.documentElement.scrollTop = docH
+    }*/
     <div height="100%" style="background:url(../static/img/back-1.png);width:100%" backgroundSize="100% 100%" position="fixed">
       <div>
         <select id="sortType" onchange={()=>sortTypeChange}>
-          <option value ="1">发帖时间</option>
-          <option value ="2">回帖时间</option>
+          <option value ="1" selected={if(sortType==1) Some("selected") else None}>发帖时间</option>
+          <option value ="2" selected={if(sortType==2) Some("selected") else None}>回帖时间</option>
         </select>
       </div>
       {articleList}
