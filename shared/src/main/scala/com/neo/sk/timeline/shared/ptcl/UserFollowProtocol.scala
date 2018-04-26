@@ -1,6 +1,6 @@
 package com.neo.sk.timeline.shared.ptcl
 
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.TopicInfo
 
 /**
   * User: sky
@@ -17,11 +17,7 @@ object UserFollowProtocol {
   case class AddFollowTopicReq(
                                 origin: Int,
                                 boardName: String,
-                                topicId: Long,
-                                title: String,
-                                time: Long,
-                                author: String,
-                                content: String
+                                topicId: Long
                               )
 
   case class AddFollowUserReq(
@@ -54,7 +50,7 @@ object UserFollowProtocol {
                         )
 
   case class FeedPost(
-                       post: Post,
+                       post: TopicInfo,
                        time: Long
                      )
 

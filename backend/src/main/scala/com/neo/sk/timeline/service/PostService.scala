@@ -4,7 +4,6 @@ import akka.http.scaladsl.server.Directives._
 import com.neo.sk.timeline.core.user.UserManager._
 
 import scala.concurrent.Future
-import com.neo.sk.timeline.ptcl.UserProtocol._
 import com.neo.sk.timeline.shared.ptcl.{ErrorRsp, SuccessRsp}
 import org.slf4j.LoggerFactory
 import akka.pattern.ask
@@ -22,45 +21,46 @@ import com.neo.sk.timeline.shared.ptcl.UserProtocol._
 import com.neo.sk.timeline.utils.SecureUtil
 import com.neo.sk.timeline.Boot.{boardManager, executor, scheduler, timeout, userManager}
 import com.neo.sk.timeline.core.postInfo.BoardManager
-import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicList
+import com.neo.sk.timeline.core.postInfo.BoardManager.{GetPostList, GetTopicList}
 import com.neo.sk.timeline.core.user.UserManager
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, TopicInfo}
+import com.neo.sk.timeline.shared.ptcl.PostProtocol._
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, GetHotBoardsListRsp, LastTimeRsp, UserFeedRsp}
 
 import scala.concurrent.duration._
 /**
   * User: sky
   * Date: 2018/4/26
-  * Time: 13:56
+  * Time: 17:10
   */
-trait BoardService extends ServiceUtils with SessionBase{
+trait PostService extends ServiceUtils with SessionBase{
   private val log = LoggerFactory.getLogger(this.getClass)
 
-  private val hotBoards=(path("hotBoards") & get & pathEndOrSingleSlash) {
+  private val postList=(path("getPostList") & post & pathEndOrSingleSlash) {
     UserAction{u=>
-      val future1:Future[List[(Int,String)]] = userManager ? (GetUserFollowBoard(u.uid,_))
-      val future2=TopicDAO.getHotBoard
-      dealFutureResult(
-        for{
-          myBoards<- future1
-          hotBoards<- future2
-        } yield {
-          val boards=myBoards.map(r=>r).toSet++:hotBoards.map(_._1).toSet
+      entity(as[Either[Error, GetPostListReq]]) {
+        case Right(req) =>
+          val future1:Future[List[SlickTables.rPosts]] =boardManager ? (GetPostList(req.origin,req.board,req.topicId,_))
           dealFutureResult(
-            BoardDAO.getBoardList(boards.toSeq).map{bs=>
-              val hotBs=hotBoards.map(r=>bs.filter(b=>b._1==r._1._1&&b._2==r._1._2).head).toList
-              val myBs=myBoards.map(r=>bs.filter(b=>b._1==r._1&&b._2==r._2).head)
-              complete(GetHotBoardsListRsp(Some(hotBs),Some(myBs)))
+            future1.map { ts =>
+              val data = ts.map { p =>
+                PostInfo(p.origin,p.boardName,p.boardNameCn,p.postId,p.topicId,p.quoteId,p.title,img2ImgList(p.imgs),img2ImgList(p.hestiaImgs),p.content,
+                  AuthorInfo(p.authorId,p.authorName,p.origin),p.postTime,isMain = p.isMain
+                )
+              }
+              complete(GetPostListRsp(Some(data)))
             }
           )
-        }
-      )
+      }
     }
   }
 
-  val boardRoutes: Route =
-    pathPrefix("board") {
-      hotBoards
+  def img2ImgList(img:String)={
+    img.split(";").toList
+  }
+
+  val postRoutes: Route =
+    pathPrefix("post") {
+      postList
     }
 
 }

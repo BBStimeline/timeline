@@ -17,6 +17,7 @@ trait HttpService extends ResourceService
   with UserService
   with UserFollowService
   with BoardService
+  with PostService
 {
 
   implicit val system: ActorSystem
@@ -32,7 +33,8 @@ trait HttpService extends ResourceService
 
   val routes: Route =
     pathPrefix("timeline") {
-      resourceRoutes ~ adminRoutes ~ userRoutes ~ followRoutes ~ boardRoutes
+      resourceRoutes ~ adminRoutes ~ userRoutes ~ followRoutes ~ boardRoutes ~
+        postRoutes
     }
 
 

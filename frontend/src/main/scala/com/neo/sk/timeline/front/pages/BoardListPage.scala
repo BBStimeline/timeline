@@ -4,7 +4,7 @@ import com.neo.sk.timeline.front.Index
 import com.neo.sk.timeline.front.common.{PageRoute, Routes}
 import com.neo.sk.timeline.front.components.CommonCheck
 import com.neo.sk.timeline.front.utils.{Http, JsFunc, Shortcut, TimeTool}
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.Post
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.TopicInfo
 import mhtml._
 import org.scalajs.dom
 import org.scalajs.dom._

@@ -2,10 +2,10 @@ package com.neo.sk.timeline.core.postInfo
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
-import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicInfoReqMsg
+import com.neo.sk.timeline.core.postInfo.BoardManager.{GetPostList, GetTopicInfoReqMsg}
 import com.neo.sk.timeline.models.SlickTables
 import com.neo.sk.timeline.models.dao.{PostDAO, TopicDAO}
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, TopicInfo}
 import org.slf4j.LoggerFactory
 import com.neo.sk.timeline.Boot.{distributeManager, executor}
 import com.neo.sk.timeline.common.AppSettings
@@ -48,7 +48,7 @@ object PostActor {
     img.split(";").toList
   }
   private def post2TopicInfo(origin:Int,t:SlickTables.rPosts,p:SlickTables.rPosts)={
-    Post(
+    TopicInfo(
       origin,t.boardName,t.boardNameCn,p.postId,p.topicId,t.title,img2ImgList(p.imgs),
       img2ImgList(p.hestiaImgs),p.content,AuthorInfo(t.authorId,t.authorName,t.origin),AuthorInfo(p.authorId,p.authorName,p.origin),t.postTime,p.postTime,
       None,isMain = true
@@ -106,11 +106,13 @@ object PostActor {
           val p=msg.post
           if(msg.post.isMain){
             PostDAO.insert(p)
+            topicInfo.put(p.postId,p)
             distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
             ctx.self ! SwitchBehavior("idle",idle(topicInfo,topicSnap.copy(topicId = msg.post.topicId,lastPostId = msg.post.topicId,postTime = msg.post.postTime,lastReplyTime = msg.post.postTime,lastReplyAuthor = msg.post.authorId)))
           }else{
             if(topicSnap.topicId!=0l){
               PostDAO.insert(p)
+              topicInfo.put(p.postId,p)
               distributeManager ! DistributeManager.DealTask(PostEvent(p.origin,p.boardName,p.topicId,p.postId,p.postTime,p.authorId,p.authorName,p.isMain))
               ctx.self ! SwitchBehavior("idle",idle(topicInfo,topicSnap.copy(lastPostId = msg.post.postId,lastReplyTime = msg.post.postTime,lastReplyAuthor = msg.post.authorId)))
             }else{
@@ -124,6 +126,18 @@ object PostActor {
             log.info(s"keepSnap with ${topicSnap.origin+"---"+topicSnap.boardName+"---"+topicSnap.topicId}")
             TopicDAO.insertOrUpdateTopicSnap(topicSnap)
           }
+          Behaviors.same
+
+        case msg:GetPostList=>
+          if(topicInfo.size==0){
+            PostDAO.getPostsByBoardId(msg.origin,msg.board,msg.topicId).map{ps=>
+              ps.map(p=>topicInfo.put(p.postId,p))
+              msg.replyTo ! topicInfo.toList.sortBy(_._1).map(_._2)
+            }
+          }else{
+            msg.replyTo ! topicInfo.toList.sortBy(_._1).map(_._2)
+          }
+
           Behaviors.same
 
         case PostWaitTimeout=>

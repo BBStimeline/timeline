@@ -2,13 +2,14 @@ package com.neo.sk.timeline.core.postInfo
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
-import BoardManager.GetTopicInfoReqMsg
+import BoardManager.{GetPostList, GetTopicInfoReqMsg}
 import com.neo.sk.timeline.core.postInfo.PostActor
 import com.neo.sk.timeline.models.SlickTables
 import org.slf4j.LoggerFactory
 import com.neo.sk.timeline.models.SlickTables.rPosts
 import com.neo.sk.timeline.models.dao.BoardDAO
-import com.neo.sk.timeline.Boot.{executor,timeout,scheduler}
+import com.neo.sk.timeline.Boot.{executor, scheduler, timeout}
+
 import scala.concurrent.duration._
 /**
   * User: sky
@@ -69,6 +70,10 @@ object BoardActor {
             today.num+=1
           }
           getPost(ctx,post.origin,post.boardName,post.topicId) ! InsertPost(post)
+          Behaviors.same
+
+        case msg:GetPostList=>
+          getPost(ctx,msg.origin,msg.board,msg.topicId) ! msg
           Behaviors.same
 
         case x=>

@@ -24,7 +24,7 @@ import com.neo.sk.timeline.Boot.{boardManager, executor, scheduler, timeout, use
 import com.neo.sk.timeline.core.postInfo.BoardManager
 import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicList
 import com.neo.sk.timeline.core.user.UserManager
-import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, Post}
+import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, TopicInfo}
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, LastTimeRsp, UserFeedRsp}
 
 import scala.concurrent.duration._
@@ -130,13 +130,13 @@ trait UserService extends ServiceUtils with SessionBase{
     }
   }
 
-  private val userLogout=(path("logout") & get & pathEndOrSingleSlash){
+  private val userLogout=(path("userLogout") & get & pathEndOrSingleSlash){
     UserAction{user=>
       val ses=Set(UserSessionKey.userId,UserSessionKey.uid)
       dealFutureResult {
         val future: Future[String] = userManager ? (UserLogout(user.uid,_))
         future.map {
-          case "ok" =>
+          case "OK" =>
             removeSession(ses){ctx =>
               log.info(s"user-----${user.userId}----logout")
               ctx.complete(CommonRsp(0,"OK"))
@@ -209,7 +209,7 @@ trait UserService extends ServiceUtils with SessionBase{
     img.split(";").toList
   }
   private def post2TopicInfo(origin:Int,t:SlickTables.rPosts,p:SlickTables.rPosts)={
-    Post(
+    TopicInfo(
       origin,t.boardName,t.boardNameCn,p.postId,p.topicId,t.title,img2ImgList(p.imgs),
       img2ImgList(p.hestiaImgs),p.content,AuthorInfo(t.authorId,t.authorName,t.origin),AuthorInfo(p.authorId,p.authorName,p.origin),t.postTime,p.postTime,
       None,isMain = true
