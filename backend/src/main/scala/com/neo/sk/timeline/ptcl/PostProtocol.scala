@@ -79,4 +79,8 @@ object PostProtocol {
                            msg:String
                          )
 
+  case class HotBoards(
+                      var hotBoards:List[(Int,String,String)]
+                      )
+
 }

@@ -243,10 +243,11 @@ object UserActor {
           Behaviors.same
 
         case msg:GetUserFeed=>
+          if(itemTime.time1==0l&&msg.sortType==1 && !msg.up) itemTime.time1=msg.itemTime
+          if(itemTime.time2==0l&&msg.sortType==2 && !msg.up) itemTime.time2=msg.itemTime
           msg.sortType match {
             case 1 => //根据创建时间
               if(msg.up){
-                println("--------------1")
                 if (user.newFeed.isEmpty || msg.itemTime >= user.newFeed.map(_._1._5).max) {
                   ctx.self ! RefreshFeed(msg.sortType,msg.itemTime,msg.pageSize,msg.up,msg.replyTo)
                 }else{
@@ -257,7 +258,7 @@ object UserActor {
                 }
               }else{
                 if (user.newFeed.isEmpty || msg.itemTime <= user.newFeed.map(_._1._5).min) {
-                  msg.replyTo ! None
+                  ctx.self ! RefreshFeed(msg.sortType,msg.itemTime,msg.pageSize,msg.up,msg.replyTo)
                 } else {
                   msg.replyTo ! Some(user.newFeed.filter(_._1._5 < msg.itemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._1._5)).toList.sortBy(_.time).reverse.take(msg.pageSize))
                 }
@@ -273,7 +274,7 @@ object UserActor {
                 }
               }else{
                 if (user.newReplyFeed.isEmpty || msg.itemTime <= user.newReplyFeed.map(_._2._2).min) {
-                  msg.replyTo ! None
+                  ctx.self ! RefreshFeed(msg.sortType,msg.itemTime,msg.pageSize,msg.up,msg.replyTo)
                 } else {
                   msg.replyTo ! Some(user.newReplyFeed.filter(_._2._2 < msg.itemTime).map(i => UserFeedReq(i._1._2,i._1._3,i._1._4,i._2._1,i._2._2)).toList.sortBy(_.time).reverse.take(msg.pageSize))
                 }
@@ -286,6 +287,10 @@ object UserActor {
 
         case msg:GetLastTime=>
           msg.replyTo ! (itemTime.time1,itemTime.time2)
+          Behaviors.same
+
+        case msg:GetUserFollowBoard=>
+          msg.replyTo ! user.favBoards.toList
           Behaviors.same
 
         case msg:RefreshFeed=>
@@ -322,6 +327,7 @@ object UserActor {
                       msg.replyTo ! Some(list)
                     }
                   } else {
+                    println("--------------1")
                     if (user.newFeed.isEmpty || msg.itemTime <= user.newFeed.map(_._1._5).min) {
                       msg.replyTo ! None
                     } else {

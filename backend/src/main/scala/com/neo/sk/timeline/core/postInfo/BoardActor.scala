@@ -28,6 +28,7 @@ object BoardActor {
                                  ) extends Command
   /**消息配置*/
   case class InsertPost(post:rPosts) extends Command with PostActor.Command
+  final case class TodayPostNum(var num:Int=0)
 
 
   /**基础配置*/
@@ -41,7 +42,7 @@ object BoardActor {
         Behaviors.withTimers[Command]{ implicit timer =>
           BoardDAO.getBoard(origin,boardName).map(r=>
             if(!r.isEmpty){
-              ctx.self ! SwitchBehavior("idle",idle(r.get,r.get.postTodayNum))
+              ctx.self ! SwitchBehavior("idle",idle(r.get,TodayPostNum(r.get.postTodayNum)))
             }else{
               log.info(s"the board--$origin--$boardName is't in boardDB")
             }
@@ -52,13 +53,12 @@ object BoardActor {
   }
 
   private def idle(boardInfo:SlickTables.rBoard,
-                   toDayPosts:Int = 0)
+                   today:TodayPostNum)
                   (
                     implicit stashBuffer:StashBuffer[Command],
                     timer:TimerScheduler[Command]
                   ):Behavior[Command] = {
     Behaviors.immutable[Command]{ (ctx,msg) =>
-      var postNum=toDayPosts
       msg match {
         case msg:GetTopicInfoReqMsg=>
           getPost(ctx,msg.origin,msg.board,msg.topicId) ! msg
@@ -66,7 +66,7 @@ object BoardActor {
 
         case InsertPost(post)=>
           if(post.isMain&&(System.currentTimeMillis()-post.postTime)<24*60*60*1000){
-            postNum+=1
+            today.num+=1
           }
           getPost(ctx,post.origin,post.boardName,post.topicId) ! InsertPost(post)
           Behaviors.same

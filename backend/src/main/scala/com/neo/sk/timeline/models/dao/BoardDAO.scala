@@ -23,4 +23,14 @@ object BoardDAO {
     db.run(tBoard.filter(r=>r.origin===origin&&r.boardName===r.boardNameCn).result.headOption)
   }
 
+  def getBoardList(list:Seq[(Int,String)])={
+    val query=tBoard.filter{p=>
+      val a=list.map{t=>
+        p.origin===t._1&&p.boardName===t._2
+      }
+      a.reduceLeft(_||_)
+    }.map(r=>(r.origin,r.boardName,r.boardNameCn))
+    db.run(query.result)
+  }
+
 }

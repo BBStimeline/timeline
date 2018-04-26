@@ -14,6 +14,19 @@ object Routes {
     val getLastTime = baseUrl +"/getLastTime"
 
     def getFeedFlow(sort:Int,lastTime:Long,pageSize:Int,up:Boolean) = baseUrl + s"/getFeedFlow?sortType=$sort&itemTime=$lastTime&pageSize=$pageSize&up=$up"
+
+
+  }
+
+  object FollowRoutes{
+    private val baseUrl = "/timeline/follow"
+    val addFollowBoard = baseUrl + "/addFollowBoard"
+    val unFollowBoard = baseUrl + "/unFollowBoard"
+  }
+
+  object BoardRoutes{
+    private val baseUrl = "/timeline/board"
+    val hotBoards = baseUrl + "/hotBoards"
   }
 
 }
