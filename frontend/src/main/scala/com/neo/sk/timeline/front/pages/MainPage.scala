@@ -71,7 +71,8 @@ object MainPage extends Index {
     def row(post:FeedPost) = {
         <div class="article-item" onclick={()=>
 //          bodyH = document.body.scrollTop
-//          docH = document.documentElement.scrollTop
+          docH = if(window.document.body.scrollTop > document.documentElement.scrollTop) window.document.body.scrollTop else document.documentElement.scrollTop;
+          println(docH)
           Shortcut.redirect(s"#/ArticlePage/${post.post.origin}/${post.post.boardName}/${post.post.topicId}")}>
           <h4 class="topic">{post.post.tittle}</h4>
           <div class="name">
@@ -117,6 +118,7 @@ object MainPage extends Index {
           enter:= makeList(list)
           isFetching=0
           if(up){
+            println("hahahhaha")
             document.body.scrollTop = 0
             document.documentElement.scrollTop = 0
           }
@@ -167,7 +169,7 @@ object MainPage extends Index {
   val rotate = Var(
     <div class={rotateClass} style={"position:fixed;left:"+(w/2-160)+"px"}>
       <img src="../static/img/return.png" style="left: -60px;top: 20px;" onclick={()=>logOut}></img>
-      <img src="../static/img/search_white.png" style="left: 60px;top: -60px;" onclick={()=>JsFunc.alert("前端开发中")}></img>
+      <img src="../static/img/other.png" style="left: 60px;top: -60px;" onclick={()=>Shortcut.redirect("#/FollowListPage")}></img>
       <img src="../static/img/brush.png" style="left: 180px;top: 20px;" onclick={()=>JsFunc.alert("前端开发中")}></img>
     </div>
   )
@@ -210,7 +212,7 @@ object MainPage extends Index {
           lastItemTime2=rsp.first.get._2
           if(lastItemTime1==0l&&lastItemTime2==0l&&initCome) {
             initCome=false
-            Shortcut.redirect("#/BoardListPage")
+            Shortcut.redirect("#/FollowListPage")
           }
           if(lastItemTime1==0l) lastItemTime1=System.currentTimeMillis()
           if(lastItemTime2==0l) lastItemTime2=System.currentTimeMillis()
@@ -226,17 +228,25 @@ object MainPage extends Index {
     }
   }
 
+  def test={
+    if(fromOther) {
+      fromOther=false
+      println(docH)
+      window.document.body.scrollTop = docH
+      document.documentElement.scrollTop = docH
+      println(docH)
+      println(window.document.body.scrollTop)
+      println(document.documentElement.scrollTop)
+    }
+  }
+
   override def render:Elem = {
     tabBarCon:=0
     dom.window.addEventListener("touchmove", fetchNewDataPost, useCapture = false)
 //    CommonCheck.checkSession
-    if(!fromOther) getLastTime /*else{
-      println("------1")
-      println(bodyH)
-      document.body.scrollTop = bodyH
-      document.documentElement.scrollTop = docH
-    }*/
-    <div height="100%" style="background:url(../static/img/back-1.png);width:100%" backgroundSize="100% 100%" position="fixed">
+    if(!fromOther) getLastTime
+//    position="fixed"
+    val elm= <div height="100%" style="background:url(../static/img/back-1.png);width:100%" backgroundSize="100% 100%" >
       <div>
         <select id="sortType" onchange={()=>sortTypeChange}>
           <option value ="1" selected={if(sortType==1) Some("selected") else None}>发帖时间</option>
@@ -250,7 +260,9 @@ object MainPage extends Index {
       {rotate}
       {tabBar}
     </div>
-  }
+    test
 
+    elm
+  }
 
 }

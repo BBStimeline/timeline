@@ -38,19 +38,22 @@ trait BoardService extends ServiceUtils with SessionBase{
 
   private val hotBoards=(path("hotBoards") & get & pathEndOrSingleSlash) {
     UserAction{u=>
-      val future1:Future[List[(Int,String)]] = userManager ? (GetUserFollowBoard(u.uid,_))
-      val future2=TopicDAO.getHotBoard
+      val future1:Future[List[(Int,String,String)]] = userManager ? (GetUserFollowBoard(u.uid,_))
+      val future2:Future[List[(Int,String,Long)]] = userManager ? (GetUserFollowTopic(u.uid,_))
+      val future3:Future[List[(Int,String,String)]] = userManager ? (GetUserFollowUser(u.uid,_))
+      val future4=TopicDAO.getHotBoard
       dealFutureResult(
         for{
           myBoards<- future1
-          hotBoards<- future2
+          myTopics<- future2
+          myUsers <- future3
+          hotBoards<- future4
         } yield {
-          val boards=myBoards.map(r=>r).toSet++:hotBoards.map(_._1).toSet
+          val boards=hotBoards.map(_._1)
           dealFutureResult(
-            BoardDAO.getBoardList(boards.toSeq).map{bs=>
+            BoardDAO.getBoardList(boards).map{bs=>
               val hotBs=hotBoards.map(r=>bs.filter(b=>b._1==r._1._1&&b._2==r._1._2).head).toList
-              val myBs=myBoards.map(r=>bs.filter(b=>b._1==r._1&&b._2==r._2).head)
-              complete(GetHotBoardsListRsp(Some(hotBs),Some(myBs)))
+              complete(GetHotBoardsListRsp(Some(hotBs),Some(myBoards),Some(myUsers),Some(myTopics)))
             }
           )
         }

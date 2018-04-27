@@ -29,6 +29,7 @@ object UserFollowProtocol {
   case class UnFollowBoardReq(
                                origin: Int, //数据来源，smth:水木社区，smthPlus：水木plus自有版面
                                boardName: String,
+                               boardTitle:String
                              )
 
   case class UnFollowTopicReq(
@@ -63,6 +64,8 @@ object UserFollowProtocol {
   case class GetHotBoardsListRsp(
                                 hotBoards:Option[List[(Int,String,String)]],
                                 myBoards :Option[List[(Int,String,String)]],
+                                myUsers:Option[List[(Int,String,String)]],
+                                myTopic:Option[List[(Int,String,Long)]],
                                 errCode:Int=0,
                                 msg:String="OK"
                                 )

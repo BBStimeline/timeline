@@ -14,8 +14,8 @@ object UserProtocol {
                             userId: String,
                             bbsId: String,
                             headImg: String,
-                            favBoards: mutable.HashSet[(Int, String)]=mutable.HashSet(),
-                            favUsers:mutable.HashSet[(Int,String)]=mutable.HashSet(),
+                            favBoards: mutable.HashSet[(Int, String,String)]=mutable.HashSet(),
+                            favUsers:mutable.HashSet[(Int,String,String)]=mutable.HashSet(),
                             favTopic: mutable.HashSet[(Int, String, Long)]=mutable.HashSet(),
                             newFeed: mutable.HashMap[(Int, Int,String,Long,Long), (Long,Long,Option[AuthorInfo])] = mutable.HashMap(),//(feedType,postInfo)(postId,replyPostTime,Info)
                             newReplyFeed: mutable.HashMap[(Int, Int,String,Long,Long), (Long,Long,Option[AuthorInfo])] = mutable.HashMap()

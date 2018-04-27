@@ -1,6 +1,6 @@
 package com.neo.sk.timeline.front
 
-import com.neo.sk.timeline.front.pages.{ArticlePage, BoardListPage, LoginPage, MainPage}
+import com.neo.sk.timeline.front.pages.{ArticlePage, FollowListPage, LoginPage, MainPage}
 import mhtml._
 import org.scalajs.dom
 
@@ -41,7 +41,7 @@ object MainEnter extends PageSwitcher {
     case Nil => MainPage.render
     case "LoginPage" :: Nil => LoginPage.render
     case "MainPage" :: Nil => MainPage.render
-    case "BoardListPage" ::Nil => BoardListPage.render
+    case "FollowListPage" ::Nil => FollowListPage.render
     case "ArticlePage" :: origin :: board :: topicId ::Nil => ArticlePage.getArticlePage(origin,board,topicId)
     case _ => <div>Error Page</div>
   }

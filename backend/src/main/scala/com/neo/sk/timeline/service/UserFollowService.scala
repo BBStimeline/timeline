@@ -43,7 +43,7 @@ trait UserFollowService extends ServiceUtils with SessionBase{
                     FollowDAO.addFollowBoard(
                       SlickTables.rUserFollowBoard(-1l, u.uid, req.boardName, req.boardTitle, System.currentTimeMillis(), 0, req.origin)
                     ).map { r =>
-                      userManager ! UserFollowBoardMsg(u.uid, req.boardName, req.origin)
+                      userManager ! UserFollowBoardMsg(u.uid, req.boardName,req.boardTitle,req.origin)
                       complete(SuccessRsp())
                     }.recover {
                       case e: Exception =>
@@ -126,7 +126,7 @@ trait UserFollowService extends ServiceUtils with SessionBase{
         UserAction{ u =>
           dealFutureResult {
             FollowDAO.unFollowBoard(u.uid, req.origin, req.boardName).map { r =>
-              userManager ! UserUnFollowBoardMsg(u.uid, req.boardName, req.origin)
+              userManager ! UserUnFollowBoardMsg(u.uid, req.boardName,req.boardTitle,req.origin)
               complete(SuccessRsp())
             }.recover {
               case e: Exception =>
