@@ -62,8 +62,8 @@ object UserActor {
           feed <- UserDAO.getUserFeed(uid)
           follows <- FollowDAO.getFollows(uid)
         } yield {
-          val favBoard = new mutable.HashSet[(Int, String)]()
-          val favUser = new mutable.HashSet[(Int,String)]()
+          val favBoard = new mutable.HashSet[(Int, String,String)]()
+          val favUser = new mutable.HashSet[(Int,String,String)]()
           val favTopic = new mutable.HashSet[(Int, String, Long)]()
           val newFeed = new mutable.HashMap[(Int, Int,String,Long,Long), (Long,Long,Option[AuthorInfo])]()
           val newReplyFeed = new mutable.HashMap[(Int, Int,String,Long,Long), (Long,Long,Option[AuthorInfo])]()
@@ -80,13 +80,13 @@ object UserActor {
             val name=r.origin+"-"+r.boardName
             val param=DisType(board=Some(r.boardName),origin = r.origin)
             distributeManager ! DistributeManager.NotifyFollowObject(name,FeedType.BOARD,uid,param)
-            favBoard.add(r.origin, r.boardName)
+            favBoard.add(r.origin, r.boardName,r.boardTitle)
           }
           follows._2.map { r =>
             val name=r.origin+"-"+r.followId
             val param=DisType(userId = Some(r.followId),userName = Some(r.followName),origin =r.origin)
             distributeManager ! DistributeManager.NotifyFollowObject(name,FeedType.USER,uid,param)
-            favUser.add(r.origin, r.followId)
+            favUser.add(r.origin, r.followId,r.followName)
           }
           follows._3.map { r =>
             val name=r.origin+"-"+r.boardName+"-"+r.topicId
@@ -140,8 +140,8 @@ object UserActor {
           }
           Behaviors.same
 
-        case UserFollowBoardMsg(_,boardName,origin)=>
-          user.favBoards.add(origin, boardName)
+        case UserFollowBoardMsg(_,boardName,boardTitle,origin)=>
+          user.favBoards.add(origin, boardName,boardTitle)
           val name=origin+"-"+boardName
           val param=DisType(board=Some(boardName),origin = origin)
           distributeManager ! DistributeManager.NotifyFollowObject(name,FeedType.BOARD,user.uid,param)
@@ -185,7 +185,7 @@ object UserActor {
           Behaviors.same
 
         case UserFollowUserMsg(_,followId,followName,origin)=>
-          user.favUsers.add(origin,followId)
+          user.favUsers.add(origin,followId,followName)
           val name=origin+"-"+followId
           val param=DisType(userId = Some(followId),userName = Some(followName),origin =origin)
           distributeManager ! DistributeManager.NotifyFollowObject(name,FeedType.USER,user.uid,param)
@@ -207,7 +207,7 @@ object UserActor {
           Behaviors.same
 
         case msg:UserUnFollowBoardMsg=>
-          user.favBoards.remove(msg.origin,msg.boardName)
+          user.favBoards.remove(msg.origin,msg.boardName,msg.boardTitle)
           val name=msg.origin+"-"+msg.boardName
           distributeManager ! DistributeManager.QuitFollowObject(name,FeedType.BOARD,user.uid)
           user.newFeed.filter(r=> r._1._1 == FeedType.BOARD && r._1._2 == msg.origin && r._1._3 == msg.boardName).map{ r=>
@@ -231,7 +231,7 @@ object UserActor {
           Behaviors.same
 
         case msg:UserUnFollowUserMsg=>
-          user.favUsers.remove(msg.origin,msg.followId)
+          user.favUsers.remove(msg.origin,msg.followId,msg.followName)
           val name=msg.origin+"-"+msg.followId
           distributeManager ! DistributeManager.QuitFollowObject(name,FeedType.USER,user.uid)
           user.newFeed.filter(r=> r._1._1 == FeedType.USER && r._1._2 == msg.origin && r._2._3.getOrElse(defaultUser).origin==msg.origin&&r._2._3.getOrElse(defaultUser).authorId==msg.followId).map{ r=>
@@ -291,6 +291,14 @@ object UserActor {
 
         case msg:GetUserFollowBoard=>
           msg.replyTo ! user.favBoards.toList
+          Behaviors.same
+
+        case msg:GetUserFollowTopic=>
+          msg.replyTo ! user.favTopic.toList
+          Behaviors.same
+
+        case msg:GetUserFollowUser=>
+          msg.replyTo ! user.favUsers.toList
           Behaviors.same
 
         case msg:RefreshFeed=>

@@ -26,6 +26,8 @@ object Routes {
     val unFollowBoard = baseUrl + "/unFollowBoard"
     val addFollowTopic = baseUrl + "/addFollowTopic"
     val addFollowUser = baseUrl + "/addFollowUser"
+    val unFollowTopic = baseUrl + "/unFollowTopic"
+    val unFollowUser = baseUrl + "/unFollowUser"
   }
 
   object BoardRoutes{

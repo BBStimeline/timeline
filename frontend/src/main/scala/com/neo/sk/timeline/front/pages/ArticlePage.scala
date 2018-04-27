@@ -72,7 +72,7 @@ object ArticlePage extends Index {
   }
 
   def followUser(origin:Int,userId:String,userName:String):Unit={
-    val confirm = dom.window.confirm(s"真的关注该发帖人吗！")
+    val confirm = dom.window.confirm(s"真的关注${userName}吗！")
     if (confirm) {
       val bodyStr = AddFollowUserReq(userId, userName, origin).asJson.noSpaces
       Http.postJsonAndParse[SuccessRsp](Routes.FollowRoutes.addFollowUser, bodyStr).map {
