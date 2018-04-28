@@ -38,7 +38,7 @@ object Main {
 object MainEnter extends PageSwitcher {
 
   val currentPage: Rx[Elem] = currentHashVar.map {
-    case Nil => MainPage.render
+    case Nil => LoginPage.render
     case "LoginPage" :: Nil => LoginPage.render
     case "MainPage" :: Nil => MainPage.render
     case "FollowListPage" ::Nil => FollowListPage.render
@@ -47,10 +47,6 @@ object MainEnter extends PageSwitcher {
   }
 
   def show(): Cancelable = {
-   /* val page =
-      <div style="height: 100%;width: 100%;">
-
-      </div>*/
     switchPageByHash()
     mount(dom.document.body, {currentPage})
   }

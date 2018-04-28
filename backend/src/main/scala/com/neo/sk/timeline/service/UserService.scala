@@ -179,6 +179,8 @@ trait UserService extends ServiceUtils with SessionBase{
               dealFutureResult {
                 futureTopic.map{topics=>
                   if(topics.normalPost.getOrElse(Nil).size==0) complete(ErrorRsp(120001, "no more date")) else complete(topics)
+                }.recover { case e:Exception =>
+                  complete(ErrorRsp(120002, "getListError"))
                 }
               }
 //              val postIds=(feeds.map(r=>(r.board,r.topicId,r.origin)):::feeds.map(r=>(r.board,r.postId,r.origin))).toSet.toSeq

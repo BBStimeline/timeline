@@ -55,7 +55,11 @@ object DistributeManager {
           Behaviors.same
 
         case msg:GetFeedList=>
-          getDistributeActor(ctx,msg.name,msg.feedType,None) ! msg
+          if(objectHash.contains(msg.name,msg.feedType)) {
+            getDistributeActor(ctx, msg.name, msg.feedType, None) ! msg
+          }else{
+            log.error("here is a bug------------!!!!!!")
+          }
           Behaviors.same
 
         case msg:ChildDead=>
