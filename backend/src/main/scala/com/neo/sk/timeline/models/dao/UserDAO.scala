@@ -25,10 +25,13 @@ object UserDAO {
   }
 
   def getUserById(id: Long) = {
-    userCache.apply(s"userId_$id", () =>
-      db.run {
-        tUser.filter(_.id === id).result.headOption
-      })
+//    userCache.apply(s"userId_$id", () =>
+//      db.run {
+//        tUser.filter(_.id === id).result.headOption
+//      })
+    db.run {
+      tUser.filter(_.id === id).result.headOption
+    }
   }
 
   def isUserExist(userId: String) = db.run {

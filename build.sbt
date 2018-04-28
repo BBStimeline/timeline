@@ -8,7 +8,7 @@ val scalaV = "2.12.4"
 //val scalaV = "2.11.8"
 
 val projectName = "timeline"
-val projectVersion = "0.0.1"
+val projectVersion = "0.0.4"
 
 
 

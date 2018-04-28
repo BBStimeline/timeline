@@ -41,7 +41,8 @@ object MainPage extends Index {
   var sortType=1 //排序方式
 
   val w = dom.document.body.clientWidth
-  var list = List.empty[FeedPost]
+  var list1 = List.empty[FeedPost]
+  var list2 = List.empty[FeedPost]
   val tabBarCon=Var(0)
   var isFetching = 0
 
@@ -114,8 +115,16 @@ object MainPage extends Index {
     Http.getAndParse[UserFollowProtocol.UserFeedRsp](Routes.UserRoutes.getFeedFlow(sortType,itemTime,10,up)).map {
       case Right(rsp) =>
         if (rsp.errCode == 0) {
-          list = if(up) List(rsp.normalPost.get,list).flatten else List(list,rsp.normalPost.get).flatten
-          enter:= makeList(list)
+          if(sortType==1){
+            list1 = if(up) List(rsp.normalPost.get,list1).flatten else List(list1,rsp.normalPost.get).flatten
+          }else{
+            list2 = if(up) List(rsp.normalPost.get,list2).flatten else List(list2,rsp.normalPost.get).flatten
+          }
+          if(sortType==1){
+            enter:= makeList(list1)
+          }else{
+            enter:= makeList(list2)
+          }
           isFetching=0
           if(up){
             println("hahahhaha")
@@ -127,15 +136,27 @@ object MainPage extends Index {
           Shortcut.redirect("#/LoginPage")
         }else if(rsp.errCode == 120001){
           JsFunc.alert("No more Date")
-          enter:=makeList(list)
+          if(sortType==1){
+            enter:=makeList(list1)
+          }else{
+            enter:=makeList(list2)
+          }
         }else{
           println(s"get list error: ${rsp.msg}")
           JsFunc.alert(rsp.msg)
-          enter:=makeList(list)
+          if(sortType==1){
+            enter:=makeList(list1)
+          }else{
+            enter:=makeList(list2)
+          }
         }
       case Left(error) =>
         println(s"get list error: $error")
-        enter:=makeList(list)
+        if(sortType==1){
+          enter:=makeList(list1)
+        }else{
+          enter:=makeList(list2)
+        }
     }
 
     }
@@ -149,7 +170,8 @@ object MainPage extends Index {
             fromOther=false
             initCome=true
             sortType=1 //排序方式
-            list = List.empty[FeedPost]
+            list1 = List.empty[FeedPost]
+            list2 = List.empty[FeedPost]
             tabBarCon:=0
             isFetching = 0
             dom.window.localStorage.removeItem("userId")
@@ -192,18 +214,29 @@ object MainPage extends Index {
 
   def sortTypeChange={
     sortType=dom.document.getElementById("sortType").asInstanceOf[Input].value.toInt
-    list = List.empty[FeedPost]
-    lastItemTime1=firstItemTime1+1
-    lastItemTime2=firstItemTime2+1
+//    list1 = List.empty[FeedPost]
+    //lastItemTime1=firstItemTime1+1
+    //lastItemTime2=firstItemTime2+1
     enter:= <div class="enter" left={(w/2-25)+"px"} top="40%" style="background:url(../static/img/back-1.png)"></div>
-    getTopicList(sortType,false)
+    if(sortType==1){
+      if(list1.size>0)
+        enter:=makeList(list1)
+      else
+        getTopicList(sortType,false)
+    }else{
+      if(list2.size>0)
+        enter:=makeList(list2)
+      else
+        getTopicList(sortType,false)
+    }
     println(sortType)
   }
 
   def getUpTopicList:Unit={getTopicList(sortType,true)}
 
   def getLastTime={
-    list=List.empty[FeedPost]
+    list1=List.empty[FeedPost]
+    list2=List.empty[FeedPost]
     fromOther=false
     Http.getAndParse[UserFollowProtocol.LastTimeRsp](Routes.UserRoutes.getLastTime).map {
       case Right(rsp) =>
@@ -214,11 +247,12 @@ object MainPage extends Index {
             initCome=false
             Shortcut.redirect("#/FollowListPage")
           }
-          if(lastItemTime1==0l) lastItemTime1=System.currentTimeMillis()
+          if(lastItemTime1==0l) {println("?????????");lastItemTime1=System.currentTimeMillis()}
           if(lastItemTime2==0l) lastItemTime2=System.currentTimeMillis()
+          println(s"last1+${lastItemTime1}")
+          println(s"last1+${lastItemTime2}")
           getTopicList(sortType,false)
         } else if(rsp.errCode == 123456){
-          JsFunc.alert("Session Error")
           Shortcut.redirect("#/LoginPage")
         }else{
           println(s"get list error: ${rsp.msg}")
@@ -228,41 +262,53 @@ object MainPage extends Index {
     }
   }
 
-  def test={
-    if(fromOther) {
-      fromOther=false
-      println(docH)
-      window.document.body.scrollTop = docH
-      document.documentElement.scrollTop = docH
-      println(docH)
-      println(window.document.body.scrollTop)
-      println(document.documentElement.scrollTop)
+  def comeBack={
+    fromOther=false
+    window.document.body.scrollTop = docH
+    document.documentElement.scrollTop = docH
+  }
+
+  def upButton:Unit={
+    if(document.body.scrollTop!=0||document.documentElement.scrollTop!=0){
+      document.body.scrollTop = 0
+      document.documentElement.scrollTop = 0
+    }else{
+      if(sortType==1){
+        list1 = List.empty[FeedPost]
+      }else{
+        list2 = List.empty[FeedPost]
+      }
+      if(sortType==1){
+        lastItemTime1=System.currentTimeMillis()
+      }else{
+        lastItemTime2=System.currentTimeMillis()
+      }
+      getTopicList(sortType,false)
     }
   }
+
 
   override def render:Elem = {
     tabBarCon:=0
     dom.window.addEventListener("touchmove", fetchNewDataPost, useCapture = false)
-//    CommonCheck.checkSession
     if(!fromOther) getLastTime
-//    position="fixed"
-    val elm= <div height="100%" style="background:url(../static/img/back-1.png);width:100%" backgroundSize="100% 100%" >
+    if(fromOther) {
+      dom.window.setTimeout(() => comeBack, 500)
+    }
+    <div height="100%" style="background:url(../static/img/back-1.png);width:100%" backgroundSize="100% 100%" >
       <div>
         <select id="sortType" onchange={()=>sortTypeChange}>
           <option value ="1" selected={if(sortType==1) Some("selected") else None}>发帖时间</option>
           <option value ="2" selected={if(sortType==2) Some("selected") else None}>回帖时间</option>
         </select>
+        <p style="float: right;">{dom.window.localStorage.getItem("userId")}</p>
       </div>
       {articleList}
-      <img src="../static/img/up.png" style={"position: fixed;height: 50px;width: 50px;right: 10px;bottom:"+ w/2 +"px;"} onclick={()=>document.body.scrollTop = 0
-        document.documentElement.scrollTop = 0}></img>
+      <img src="../static/img/up.png" style={"position: fixed;height: 50px;width: 50px;right: 10px;bottom:"+ w/2 +"px;"} onclick={()=>upButton}></img>
       <img src="../static/img/down.png" style={"position: fixed;height: 50px;width: 50px;right: 10px;bottom:"+ (w/2+55) +"px;"} onclick={()=>getUpTopicList}></img>
       {rotate}
       {tabBar}
     </div>
-    test
-
-    elm
   }
 
 }
