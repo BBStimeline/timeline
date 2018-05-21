@@ -68,6 +68,10 @@ object Dependencies {
 
   val dom4j = "org.dom4j" % "dom4j" % "2.0.0"
 
+  val spring_context_support = "org.springframework" % "spring-context-support" % "3.0.5.RELEASE"
+  val javax_mail = "javax.mail" % "mail" % "1.4.3"
+  val jyaml = "org.jyaml" % "jyaml" % "1.3"
+  val snakeyaml = "org.yaml" % "snakeyaml" % "1.7"
 
 
   val backendDependencies =
@@ -89,7 +93,11 @@ object Dependencies {
       Dependencies.postgresql,
       Dependencies.asynchttpclient,
       Dependencies.ehcache,
-      Dependencies.dom4j
+      Dependencies.dom4j,
+      Dependencies.jyaml,
+      Dependencies.spring_context_support,
+      Dependencies.javax_mail,
+      Dependencies.snakeyaml
     )
 
 
