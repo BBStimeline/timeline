@@ -48,7 +48,7 @@ object SynDataActor {
               id=r
               log.info(s"start synData with id=$id")
               timer.startPeriodicTimer(TimerKey,Timeout,synTime)
-              timer.startPeriodicTimer(DelTimeKey,DelTimeout,synOutTime)
+//              timer.startPeriodicTimer(DelTimeKey,DelTimeout,synOutTime)
             case None =>log.debug(s"dataBase being wrong")
           }
         }

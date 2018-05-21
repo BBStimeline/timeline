@@ -90,6 +90,14 @@ object AppSettings {
   val synTime=smallSpiderConfig.getInt("synDataTime")
   val synOutTime=smallSpiderConfig.getInt("synOutTime")
 
+  val mailConfig = config.getConfig("mail")
+  val mailHost = mailConfig.getString("server.host")
+  val mailUsername = mailConfig.getString("server.username")
+  val mailPassword = mailConfig.getString("server.password")
+  val mailPort = mailConfig.getInt("server.port")
+  val defaultEncoding = mailConfig.getString("server.defaultEncoding")
+  val mailFrom = mailConfig.getString("email.from")
+
   val sessionConfig = {
     val sConf = config.getConfig("session")
     SessionConfig(

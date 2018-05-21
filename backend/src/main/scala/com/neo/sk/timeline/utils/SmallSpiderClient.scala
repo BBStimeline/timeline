@@ -212,9 +212,7 @@ object SmallSpiderClient extends HttpUtil{
     val sn = appId + System.currentTimeMillis().toString
     val data = PostsListRst(id,count).asJson.noSpaces
     val (timestamp, nonce, signature) = SecureUtil.generateSignatureParameters(List(appId, sn,data), secureKey)
-
     val params = AuthData(appId, sn, timestamp, nonce, signature, data).asJson.noSpaces
-
     postJsonRequestSend(s"small spider list posts $url", url, Nil, params).map {
       case Right(str)=>
         decode[OrderPostRsp](str) match{
@@ -224,12 +222,10 @@ object SmallSpiderClient extends HttpUtil{
             } else {
               Left(r.msg)
             }
-
           case Left(e)=>
             log.error(s"parse data error $e")
             Left(e)
         }
-
       case Left(e)=>
         log.error(s"get user post $url failed:" + e)
         Left(e)
