@@ -11,10 +11,7 @@ object UserProtocol {
   case class UserSignReq(
                         userId:String,
                         pwd:String,
-                        mail:String,
-                        city:String,
-                        img:String,
-                        gender:Int
+                        mail:String
                         )
 
   case class UserLoginReq(

@@ -65,27 +65,25 @@ object LoginPage extends Index {
     val nametext=dom.window.document.getElementById("signName").asInstanceOf[Input]
     val passwordtext=dom.window.document.getElementById("signPwd").asInstanceOf[Input]
     val mailtext=dom.window.document.getElementById("mail").asInstanceOf[Input]
-    val citytext=dom.window.document.getElementById("city").asInstanceOf[Input]
-    val gendertext=dom.window.document.getElementById("gender").asInstanceOf[Input]
     val name=nametext.value
     val password=passwordtext.value
     val mail=mailtext.value
-    val city=citytext.value
     if(!name.equals("") && !password.equals("")){
-      val bodyStr =UserSignReq(name,password,mail,city,"",gendertext.value.toInt).asJson.noSpaces
-      Http.postJsonAndParse[UserSignRsp](Routes.UserRoutes.signUp,bodyStr).map{
+      val bodyStr =UserSignReq(name,password,mail).asJson.noSpaces
+      Http.postJsonAndParse[SuccessRsp](Routes.UserRoutes.signUp,bodyStr).map{
         case Right(rsp) =>
           if(rsp.errCode!=0){
             println(s"name or password error in login ${rsp.errCode} ")
             JsFunc.alert(s"${rsp.msg}")
-            nametext.value=""
-            passwordtext.value=""
+            if(rsp.errCode==1002006){
+              nametext.value=""
+            }else if(rsp.errCode == 1002007){
+              mailtext.value=""
+            }
           }else{
-            dom.window.localStorage.setItem("userId",rsp.userInfo.getOrElse(UserInfoDetail()).userId)
-            dom.window.localStorage.setItem("uId",rsp.userInfo.getOrElse(UserInfoDetail()).uid.toString)
-            dom.window.localStorage.setItem("bbsId",rsp.userInfo.getOrElse(UserInfoDetail()).bbsId)
-            dom.window.localStorage.setItem("face_url",rsp.userInfo.getOrElse(UserInfoDetail()).face_url)
-            dom.window.location.hash = PageRoute.mainPage
+            window.alert("验证消息已发至您的注册邮箱，请前往验证！")
+            dom.document.body.removeChild(dom.document.getElementById("modledom"))
+            //            dom.window.location.hash = PageRoute.mainPage
           }
         case Left(e)=>
           println(s"parse error in login $e ")
@@ -142,15 +140,6 @@ object LoginPage extends Index {
         <div>
           <input type="email" id="mail" placeholder="邮箱" autofocus="true" class="pure-u-1"></input>
         </div>
-        <div>
-          <input type="text" id="city" placeholder="城市" autofocus="true" class="pure-u-1"></input>
-        </div>
-        <div>
-          <select id="gender" class="pure-u-1">
-            <option value ="0">男</option>
-            <option value ="1">女</option>
-          </select>
-        </div>
         <p class="login-submit invalid" onclick={()=>sign()}>CREATE NEW</p>
       </div>
     </div>
@@ -172,7 +161,7 @@ object LoginPage extends Index {
 
   override def render:Elem = {
     <div style="height: 100%;width: 100%;">
-      <div style="background:url(../static/img/back-1.png);height:100%" backgroundSize="100% 100%" width={w+"px"}>
+      <div style="background:url(static/img/back-1.png);height:100%" backgroundSize="100% 100%" width={w+"px"}>
         <div width="100%" height={h+"px"}></div>
         <div class="pure-u-1-8"></div>
         <div class="pure-u-3-4" position="relative"></div>

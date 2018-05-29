@@ -38,11 +38,17 @@ object UserDAO {
     tUser.filter(r => r.userId === userId).result.headOption
   }
 
-  def addUser(userId: String, time: Long, sessionKey: String, img: String,
-              city: String, gender: Int, sha1pwd:String) = db.run {
+  def isMailExist(mail:String)=db.run(
+    tUser.filter(r=>r.email===mail).result.headOption
+  )
+
+  def getUserByNameOrEmail(userId:String,email:String)={
+    db.run(tUser.filter(r=>(r.userId===userId)||(r.email===email)).result.headOption)
+  }
+
+  def addUser(userId: String, time: Long, sessionKey: String,sha1pwd:String,email:String) = db.run {
     tUser.returning(tUser.map(_.id)) +=
-      rUser(-1l, userId, "guest",sha1pwd, time, sessionKey, time, "", "", img, city,
-        gender, 0, 1)
+      rUser(-1l, userId, "guest",sha1pwd, time, sessionKey, time, email = email)
   }
 
   /**

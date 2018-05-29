@@ -2,10 +2,10 @@ package com.neo.sk.timeline.utils
 
 import java.io.File
 import java.util.Properties
+
 import javax.mail.MessagingException
 import javax.mail.internet.MimeMessage
 import javax.security.auth.Subject
-
 import com.neo.sk.timeline.common.AppSettings
 import com.neo.sk.timeline.common.AppSettings.{mailFrom, mailHost, mailPassword, mailPort, mailUsername}
 import org.slf4j.LoggerFactory
@@ -165,6 +165,37 @@ object MailUtil {
     log.info(s"正在发送邮件...to..$to")
     new MyEmailClient(eMailProduceService).run()
     log.info(s"发送完毕!")
+  }
+
+  def mailText(nickName:String,pwdMd5:String,email:String,time:Long,rand:String)={
+    "<table style=\"border-collapse:collapse;border:1px solid #CCC;width:590px;font-size:12px;line-height:1.125;\">" +
+      "<tbody><tr>\n  " +
+      "        \t<td>\n       " +
+      "          \t<div style=\"padding:50px 30px 0;\">\n          " +
+      "              <strong style=\"font-family:\'Microsoft Yahei\' ; font-size: 14px; \">亲爱的 <a href=\"mailto:" + email + "\" target=\"_blank\">" + nickName + ":</a></strong>\n    " +
+      "                 <p style=\"color:#333;padding-top:20px;\">点击以下链接即可马上激活你的帐号：</p>\n         " +
+      "                 <p><a href=\"http://"+AppSettings.httpDomain+"/timeline/user/registerCheck?nickName=" + nickName + "&amp;password="+ pwdMd5 + "&amp;email=" + email + "&amp;time=" + time + "&amp;rand=" + rand + "\" style=\"word-break:break-all;word-wrap:break-word\" target=\"_blank\">" +
+      "                     验证邮箱 </a>" +
+      "                 </p>\n " +
+      "                 <p style=\"color:#333;padding-top:20px;\">本链接</p>\n     " +
+      "                 </div>\n   " +
+      "           </td>\n   " +
+      "           </tr>\n    <tr>\n  " +
+      "          \t<td>\n    " +
+      "              <div style=\"padding:35px 30px 0;\">\n       " +
+      "                  <p>小提示：</p>\n           " +
+      "                  <p>1.如果你错误的接收到此邮件，请不要慌张，也无需执行任何操作来取消帐户！该帐户将不会启动。</p>\n   " +
+      "                  <p>2.这只是一封系统自动发送的邮件，请不要直接回复。</p>\n       " +
+      "               </div>\n  " +
+      "             </td>\n " +
+      "             </tr>\n    <tr>\n    \t<td>\n      " +
+      //      "               <div style=\"padding:35px 30px 0;\">\n        " +
+      //      "                   <p>欢迎使用本数据分享平台</p>\n           " +
+      //      "                   <p>电脑访问：<a href=\"http://weibo.com\" target=\"_blank\">http://weibo.com</a></p>\n    " +
+      //      "               </div>\n    " +
+      "              </td>\n   " +
+      "        </tr>\n</tbody>" +
+      "</table> "
   }
 
 }

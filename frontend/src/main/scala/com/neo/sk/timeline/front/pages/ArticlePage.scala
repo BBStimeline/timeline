@@ -42,7 +42,7 @@ object ArticlePage extends Index {
     <p style={"position: fixed;position: absolute;bottom: 40px;right: 0px;background: darkgrey;box-shadow: 0 0 4px rgba(0,0,0,0.2);text-align: center;border-radius: 10px 0 10px 0;color: #94cfd6;font-size: 32px;line-height: 30px;height: 50px;overflow: hidden;z-index: 6;width: 50px;"} onclick={()=>
       MainPage.fromOther=true
       Shortcut.redirect("#/MainPage")}>
-      <img src="../static/img/return.png" style="height: 50px;width: 50px;"></img>
+      <img src="static/img/return.png" style="height: 50px;width: 50px;"></img>
     </p>
   )
 
@@ -134,7 +134,7 @@ object ArticlePage extends Index {
   override def render={
     println(origin+"-"+board+"-"+topicId)
     getPostList
-    <div style={"height:"+(h-30)+"px;background:url(../static/img/back-1.png);width:"+(w-30)+"px;position:fixed;padding:15px"}>
+    <div style={"height:"+(h-30)+"px;background:url(static/img/back-1.png);width:"+(w-30)+"px;position:fixed;padding:15px"}>
       <div class="post" style={"max-height:"+h+"px;overflow-x:hidden"}>
         {title}
         {postList}

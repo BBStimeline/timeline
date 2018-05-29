@@ -11,6 +11,7 @@ import akka.pattern.ask
 import io.circe.Error
 import io.circe.generic.auto._
 import akka.actor.typed.scaladsl.AskPattern._
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import com.neo.sk.timeline.common.AppSettings
@@ -26,7 +27,7 @@ import com.neo.sk.timeline.core.postInfo.BoardManager.GetTopicList
 import com.neo.sk.timeline.core.user.UserManager
 import com.neo.sk.timeline.shared.ptcl.PostProtocol.{AuthorInfo, TopicInfo}
 import com.neo.sk.timeline.shared.ptcl.UserFollowProtocol.{FeedPost, LastTimeRsp, UserFeedRsp}
-
+import com.neo.sk.timeline.utils.MailUtil
 import scala.concurrent.duration._
 
 /**
@@ -36,6 +37,8 @@ import scala.concurrent.duration._
   */
 trait UserService extends ServiceUtils with SessionBase{
   private val log = LoggerFactory.getLogger(this.getClass)
+
+  private val secretKey = "dsacsodaux84fsdcs4wc32xm"
 
   private val userIndex:Route=(path ("index") & get){
     getFromResource("html/index.html")
@@ -48,11 +51,11 @@ trait UserService extends ServiceUtils with SessionBase{
         dealFutureResult(
           UserDAO.isUserExist(req.userId).map(r=>
             if(r.isEmpty){
-              val sha1Pwd=SecureUtil.getSecurePassword(req.userId,req.pwd)
+              val sha1Pwd=SecureUtil.getSecurePassword(req.pwd,req.userId)
+              val (sessionKey,keyCode,signature)=SecureUtil.appSafety
               dealFutureResult(
-                UserDAO.addUser(req.userId,now,"",req.img,req.city,req.gender,sha1Pwd).map { t =>
+                UserDAO.addUser(req.userId,now,sessionKey,sha1Pwd,req.mail).map { t =>
                   if (t > 0l){
-                    val (sessionKey,keyCode,signature)=SecureUtil.appSafety
                     val session = Map(
                       SessionBase.SessionTypeKey -> UserSessionKey.SESSION_TYPE,
                       UserSessionKey.uid -> t.toString,
@@ -64,18 +67,10 @@ trait UserService extends ServiceUtils with SessionBase{
                     )
                     val headImg=AppSettings.defaultHeadImg
                     val userDetail=UserInfoDetail(t,req.userId,"",headImg)
-                    dealFutureResult(
-                      UserDAO.updateSession(t,sessionKey).map{u=>
-                        if(u>0){
-                          setSession(session){ ctx =>
-                            userManager ! UserManager.UserLogin(t)
-                            ctx.complete(UserSignRsp(Some(userDetail),0, "Ok"))
-                          }
-                        }else{
-                          complete(ErrorRsp(10001,"更新用户签名失败"))
-                        }
-                      }
-                    )
+                    setSession(session){ ctx =>
+                      userManager ! UserManager.UserLogin(t)
+                      ctx.complete(UserSignRsp(Some(userDetail),0, "Ok"))
+                    }
                   }  else complete(ErrorRsp(10001, "注册失败"))
                 }
               )
@@ -89,12 +84,107 @@ trait UserService extends ServiceUtils with SessionBase{
     }
   }
 
+  private val registerSubmit = (path("userSign") & pathEndOrSingleSlash & post) {
+    loggingAction {
+      _ =>
+        entity(as[Either[Error, UserSignReq]]) {
+          case Left(error) =>
+            log.warn(s"some error: $error")
+            complete(ErrorRsp(1002003, "Pattern error."))
+          case Right(userInfo) =>
+            dealFutureResult(
+              UserDAO.isUserExist(userInfo.userId).map {
+                userNameOption =>
+                  if (userNameOption.isDefined) {
+                    complete(ErrorRsp(1002006, "Nickname has existed!"))
+                  } else {
+                    dealFutureResult(
+                      UserDAO.isMailExist(userInfo.mail).map {
+                        userEmailOption =>
+                          if (userEmailOption.isDefined) {
+                            complete(ErrorRsp(1002007, "Email has been used!"))
+                          } else {
+                            val ls = List(userInfo.userId, userInfo.mail)
+                            val rand = SecureUtil.generateSignature(ls, secretKey)
+                            val pwdMd5 = SecureUtil.getSecurePassword(userInfo.pwd,userInfo.userId)
+                            val registerTime = System.currentTimeMillis()
+                            val subject = "账号激活"
+                            val text = MailUtil.mailText(userInfo.userId,pwdMd5,userInfo.mail,registerTime,rand)
+                            MailUtil.setMailSend(subject, userInfo.mail, text)
+                            complete(SuccessRsp())
+                          }
+                      }
+                    )
+                  }
+              }
+            )
+        }
+
+    }
+
+  }
+
+  //  用户注册邮箱核查验证
+  private val registerCheck = (path("registerCheck") & get) {
+    loggingAction {
+      _ =>
+        parameters('nickName.as[String], 'password.as[String], 'email.as[String], 'time.as[Long], 'rand.as[String]) {
+          (userId, password, email, time, rand) =>
+            val effectiveTime = 24 * 60 * 60 * 1000
+            if ((System.currentTimeMillis() - time) > effectiveTime) {
+              log.info(s"The user's verification email has expired")
+              complete(ErrorRsp(errCode = 1002008, "The user's verification information has expired"))
+            } else {
+              val ls = List(userId,email)
+              val userRand = SecureUtil.generateSignature(ls, secretKey)
+              if (userRand != rand) {
+                log.info(s"register failed,user's rand doesn't match")
+                complete(ErrorRsp(errCode = 1002009, "User's rand doesn't match"))
+              } else {
+                dealFutureResult(
+                  UserDAO.getUserByNameOrEmail(userId, email).map {
+                    userOption =>
+                      if (userOption.isDefined) {
+                        log.info(s"user has existed!")
+                        complete(ErrorRsp(1002006, "user has existed!"))
+                      } else {
+                        log.info(s"$userId register success email:$email time:$time")
+                        val (sessionKey,keyCode,signature)=SecureUtil.appSafety
+                        dealFutureResult(
+                          UserDAO.addUser(userId,System.currentTimeMillis(),sessionKey,password,email).map { t =>
+                            if (t > 0l){
+                              val session = Map(
+                                SessionBase.SessionTypeKey -> UserSessionKey.SESSION_TYPE,
+                                UserSessionKey.uid -> t.toString,
+                                UserSessionKey.userId -> userId,
+                                UserSessionKey.bbsId -> "guest",
+                                UserSessionKey.loginTime -> System.currentTimeMillis().toString,
+                                UserSessionKey.keyCode -> keyCode,
+                                UserSessionKey.signature -> signature
+                              )
+                              val headImg=AppSettings.defaultHeadImg
+                              setSession(session){ ctx =>
+                                userManager ! UserManager.UserLogin(t)
+                                ctx.redirect("/timeline/index", StatusCodes.SeeOther)
+                              }
+                            }  else complete(ErrorRsp(10001, "注册失败"))
+                          }
+                        )
+                      }
+                  }
+                )
+              }
+            }
+        }
+    }
+  }
+
 
   private val userLogin = (path("userLogin") & post & pathEndOrSingleSlash) {
     entity(as[Either[Error, UserLoginReq]]) {
       case Right(req) =>
         val (sessionKey,keyCode,signature)=SecureUtil.appSafety
-        val sha1Pwd=SecureUtil.getSecurePassword(req.userId,req.pwd)
+        val sha1Pwd=SecureUtil.getSecurePassword(req.pwd,req.userId)
         dealFutureResult(
           UserDAO.userLogin(req.userId,sha1Pwd).map{r=>
             if(r.isEmpty) complete(CommonRsp(10001,"用户不存在或密码错误"))
@@ -207,6 +297,38 @@ trait UserService extends ServiceUtils with SessionBase{
     }
   }
 
+  private val getTestFeedFlow = (path("getTestFeedFlow") & get & pathEndOrSingleSlash) {
+    parameters(
+      'id.as[Long],
+      'sortType.as[Int],
+      'itemTime.as[Long],
+      'pageSize.as[Int],
+      'up.as[Boolean]
+    ) { case (uid,sortType, lastItemTime, pageSize,up) =>
+      dealFutureResult {
+        val future: Future[Option[List[UserFeedReq]]] = userManager ? (GetUserFeed(uid, sortType, lastItemTime, pageSize,up, _))
+        future.map {
+          case Some(feeds) =>
+            val futureTopic:Future[UserFeedRsp] = boardManager ? (GetTopicList(feeds,_))
+            dealFutureResult {
+              futureTopic.map{topics=>
+                if(topics.normalPost.getOrElse(Nil).size==0) complete(ErrorRsp(120001, "no more date")) else complete(topics)
+              }.recover { case e:Exception =>
+                complete(ErrorRsp(120002, "getListError"))
+              }
+            }
+          case None =>
+            complete(ErrorRsp(120007, "No more Data"))
+
+        }.recover {
+          case e: Exception =>
+            log.info(s"postArt exception.." + e.getMessage)
+            complete(ErrorRsp(120003, "网络异常,请稍后再试!"))
+        }
+      }
+    }
+  }
+
   private def img2ImgList(img:String)={
     img.split(";").toList
   }
@@ -220,6 +342,6 @@ trait UserService extends ServiceUtils with SessionBase{
 
   val userRoutes: Route =
     pathPrefix("user") {
-      userIndex ~ userSign ~ userLogin ~ userLogout ~ getFeedFlow ~ getLastTime
+      registerSubmit ~ registerCheck ~ userLogin ~ userLogout ~ getFeedFlow ~ getLastTime ~ getTestFeedFlow
     }
 }

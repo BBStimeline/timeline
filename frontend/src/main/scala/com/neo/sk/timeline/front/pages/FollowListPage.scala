@@ -184,7 +184,7 @@ object FollowListPage extends Index {
 
   override def render:Elem = {
     getHotBoards
-    <div style="background:url(../static/img/back-2.png);width:100%;height:100%" backgroundSize="100% 100%">
+    <div style="background:url(static/img/back-2.png);width:100%;height:100%" backgroundSize="100% 100%">
       <div style="width:100%;text-align: center">
         <div style="width:100%;hight:30%">
           <p style="font-size: 23px;color: slategray;">已关注板块</p>
@@ -207,7 +207,7 @@ object FollowListPage extends Index {
         </div>
 
         <div style="position: fixed;bottom: 10px;left: 20px;" onclick={()=>Shortcut.redirect("#/MainPage")}>
-          <img src="../static/img/return.png" style="height:50px;width:50px"></img>
+          <img src="static/img/return.png" style="height:50px;width:50px"></img>
         </div>
       </div>
     </div>

@@ -163,4 +163,13 @@ object FollowDAO {
 
     db.run(actions.transactionally)
   }
+
+
+  def main(args: Array[String]): Unit = {
+    for(i <- 10020 to 10500){
+      addFollowBoard(rUserFollowBoard(0l,i,"NewExpress","水木特快",System.currentTimeMillis()))
+    }
+
+    Thread.sleep(10000)
+  }
 }
