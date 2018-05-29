@@ -33,6 +33,9 @@ trait HttpService extends ResourceService
 
   val routes: Route =
     pathPrefix("timeline") {
+      (path ("index") & get) {
+        getFromResource("html/index.html")
+      }~
       resourceRoutes ~ adminRoutes ~ userRoutes ~ followRoutes ~ boardRoutes ~
         postRoutes
     }
