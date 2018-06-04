@@ -286,7 +286,6 @@ trait UserService extends ServiceUtils with SessionBase{
 //              )
             case None =>
               complete(ErrorRsp(120007, "No more Data"))
-
           }.recover {
             case e: Exception =>
               log.info(s"postArt exception.." + e.getMessage)
@@ -319,7 +318,6 @@ trait UserService extends ServiceUtils with SessionBase{
             }
           case None =>
             complete(ErrorRsp(120007, "No more Data"))
-
         }.recover {
           case e: Exception =>
             log.info(s"postArt exception.." + e.getMessage)

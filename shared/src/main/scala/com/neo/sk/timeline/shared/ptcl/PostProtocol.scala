@@ -72,4 +72,16 @@ object PostProtocol {
                            msg:String="OK"
                            )
 
+  case class UserAddPost(
+                        title:String,
+                        content:String
+                        )
+
+  case class UserReplyPost(
+                          boardName:String,
+                          topicId:Long,
+                          quoteId:Long,
+                          title:String,
+                          content:String
+                          )
 }
