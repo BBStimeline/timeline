@@ -36,4 +36,9 @@ object UserProtocol {
                            userInfo:Option[UserInfoDetail],
                            errCode: Int,
                            msg: String) extends CommonRsp
+
+  case class AdminConfirm(
+                           adminName:String,
+                           passWord:String
+                         )
 }

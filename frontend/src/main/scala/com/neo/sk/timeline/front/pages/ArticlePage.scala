@@ -35,6 +35,7 @@ object ArticlePage extends Index {
   private var topicId=0l
 
   val title:Var[Node]=Var(<div></div>)
+  val originVar= if(origin==0) <h3 style="font-size: 10px;display: flex;justify-content: end;color: burlywood;">**水木论坛**</h3> else <h3 style="font-size: 10px;display: flex;justify-content: end;color: burlywood;">**自有版面**</h3>
   val postList:Var[Node]=Var(<div></div>)
 
 //  left: "+(w/2+30)+"px;
@@ -104,6 +105,13 @@ object ArticlePage extends Index {
         <div class="name" style="text-align: right;color: darkolivegreen;">
           <span class="name" >{post.author.authorName}</span>
           <span>{"    發表于 "+TimeTool.DateFormatter(new Date(post.postTime),"yyyy-MM-dd hh:mm:ss")}</span>
+          {
+            if(post.origin==1){
+              <img src="static/img/edit.png" onclick={()=>Shortcut.redirect(s"#/ReplyPost/${post.boardName}/${post.topicId}/${post.postId}")}></img>
+            }else{
+              <div></div>
+            }
+          }
         </div>
       </div>
     }
@@ -137,6 +145,7 @@ object ArticlePage extends Index {
     <div style={"height:"+(h-30)+"px;background:url(static/img/back-1.png);width:"+(w-30)+"px;position:fixed;padding:15px"}>
       <div class="post" style={"max-height:"+h+"px;overflow-x:hidden"}>
         {title}
+        {originVar}
         {postList}
         {tabBar}
       </div>

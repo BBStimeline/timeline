@@ -40,6 +40,13 @@ object Routes {
     val getPostList = baseUrl + "/getPostList"
   }
 
+  object AdminRoutes{
+    private val baseUrl = "/timeline/admin"
+    val login = baseUrl + "/login"
+    val startSys = baseUrl + "/startSynData"
+    val stopSys = baseUrl + "/stopSynData"
+  }
+
 }
 
 object PageRoute{

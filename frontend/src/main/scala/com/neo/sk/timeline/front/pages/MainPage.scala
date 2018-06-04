@@ -192,7 +192,7 @@ object MainPage extends Index {
     <div class={rotateClass} style={"position:fixed;left:"+(w/2-160)+"px"}>
       <img src="static/img/return.png" style="left: -60px;top: 20px;" onclick={()=>logOut}></img>
       <img src="static/img/other.png" style="left: 60px;top: -60px;" onclick={()=>Shortcut.redirect("#/FollowListPage")}></img>
-      <img src="static/img/brush.png" style="left: 180px;top: 20px;" onclick={()=>JsFunc.alert("前端开发中")}></img>
+      <img src="static/img/brush.png" style="left: 180px;top: 20px;" onclick={()=>Shortcut.redirect("#/PostArticle")}></img>
     </div>
   )
 

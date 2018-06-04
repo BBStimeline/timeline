@@ -32,10 +32,32 @@ object FollowListPage extends Index {
   var myBoardList:List[(Int,String,String)]=Nil
   var myTopicList:List[(Int,String,Long)]=Nil
   var myUserList:List[(Int,String,String)]=Nil
+  var searchBoard=""
   val hotBoardDivList=Var(List(<div></div>))
   val myBoardDivList=Var(List(<div></div>))
   val myTopicDivList=Var(List(<div></div>))
   val myUserDivList=Var(List(<div></div>))
+
+  val flagVar=Var(1)
+
+  val mainBar=Var(<div></div>)
+
+  val hotRx=flagVar.map{
+    case 1=> Some("active")
+    case _=> None
+  }
+  val boardRx=flagVar.map{
+    case 2=> Some("active")
+    case _=> None
+  }
+  val topicRx=flagVar.map{
+    case 3=> Some("active")
+    case _=> None
+  }
+  val userRx=flagVar.map{
+    case 4=> Some("active")
+    case _=> None
+  }
 
   def makeBoardList(list: List[(Int,String,String)], add:Boolean)= {
     def row(board:(Int,String,String)) = {
@@ -179,6 +201,33 @@ object FollowListPage extends Index {
     }
   }
 
+  def change(flag:Int)={
+    flagVar.update(_=>flag)
+    if(flag==1){
+      mainBar:= <div>
+        {hotBoardDivList}
+        <div class="pure-control-group">
+          <label>板块名</label>
+          <input class="pure-input-1" onchange={ (e: Event) =>
+            searchBoard = e.target.asInstanceOf[TextArea].value}>{searchBoard}</input>
+          <button onclick={()=>window.alert("Ok")}>搜索</button>
+        </div>
+      </div>
+    }else if(flag==2){
+      mainBar:= <div>
+        {myBoardDivList}
+      </div>
+    }else if(flag==3){
+      mainBar:= <div>
+        {myTopicDivList}
+      </div>
+    }else{
+      mainBar:= <div>
+        {myUserDivList}
+      </div>
+    }
+  }
+
 
 
 
@@ -186,7 +235,7 @@ object FollowListPage extends Index {
     getHotBoards
     <div style="background:url(static/img/back-2.png);width:100%;height:100%" backgroundSize="100% 100%">
       <div style="width:100%;text-align: center">
-        <div style="width:100%;hight:30%">
+        <!-- <div style="width:100%;hight:30%">
           <p style="font-size: 23px;color: slategray;">已关注板块</p>
           {myBoardDivList}
         </div>
@@ -204,8 +253,21 @@ object FollowListPage extends Index {
         <div style="width:100%;hight:30%">
           <p style="font-size: 23px;color: slategray;">热门板块点击关注</p>
           {hotBoardDivList}
-        </div>
+        </div> -->
 
+        <div style="margin-top:4px;margin-left:5%;width:95%">
+          <ul class="nav nav-tabs" style="width:90%; margin-left:5%;margin-top:20px">
+            <li role="presentation" class={hotRx} style="width:20%" onclick={()=>change(1)}><a>热门板块</a></li>
+            <li role="presentation" class={boardRx} style="width:20%" onclick={()=>change(2)}><a>关注板块</a></li>
+            <li role="presentation" class={topicRx} style="width:20%" onclick={()=>change(3)}><a>关注话题</a></li>
+            <li role="presentation" class={userRx} style="width:20%" onclick={()=>change(4)}><a>关注用户</a></li>
+          </ul>
+          <div style="width:90%;height:100%;margin-left:5%;margin-top:20px">
+          </div>
+        </div>
+        <div style="width:90%;height:100%;margin-left:5%;margin-top:20px">
+          {mainBar}
+        </div>
         <div style="position: fixed;bottom: 10px;left: 20px;" onclick={()=>Shortcut.redirect("#/MainPage")}>
           <img src="static/img/return.png" style="height:50px;width:50px"></img>
         </div>
