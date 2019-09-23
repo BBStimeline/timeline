@@ -36,17 +36,6 @@ object AppSettings {
   val appConfig = config.getConfig("app")
   val dependence = config.getConfig("dependence")
 
-  val weixinConfig = appConfig.getConfig("weixin")
-  val weixinMchId = weixinConfig.getString("mchId")
-  val weixinAppId = weixinConfig.getString("appId")
-  val weixinKey = weixinConfig.getString("key")
-  val weixinNotifyUrl = weixinConfig.getString("notifyUrl")
-  val weixinIp = weixinConfig.getString("ip")
-  val weixinSubject = weixinConfig.getString("subject")
-  val weixinSpbillCreateIp = weixinConfig.getString("ip")
-  val weixinDesc = weixinConfig.getString("desc")
-  val withdrawLimit = weixinConfig.getInt("withdrawLimit")
-
 
 
   val httpInterface = appConfig.getString("http.interface")
