@@ -5,7 +5,11 @@ import akka.actor.typed.ActorRef
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
+import com.neo.sk.timeline.core.SynDataActor.{StartSynData, StopSynData}
+import com.neo.sk.timeline.models.dao.SynDataDAO
+import com.neo.sk.timeline.shared.ptcl.{ErrorRsp, SuccessRsp}
 import org.slf4j.LoggerFactory
+import com.neo.sk.timeline.Boot.{synDataActor,executor}
 
 import scala.language.postfixOps
 
@@ -21,50 +25,26 @@ trait AdminService extends ServiceUtils with SessionBase {
 
   private val secretKey = "dsacsodaux84fsdcs4wc32xm"
   private val log = LoggerFactory.getLogger("com.neo.sk.timeline.service.AdminService")
-  private val login = (path("login") & get & pathEndOrSingleSlash) {
-    loggingAction { _ =>
-      getFromResource("html/index.html")
-    }
-  }
-  private val home = (path("home") & get & pathEndOrSingleSlash) {
-    AdminAction { ctx =>
-      getFromResource("html/admin.html")
-    }
-  }
-  private val statistic: Route = (path("statistic") & get) {
-    AdminAction { _ =>
+
+  private val adminIndex:Route=pathEndOrSingleSlash {
+    loggingAction{_=>
       getFromResource("html/admin.html")
     }
   }
 
-  private val userRecords: Route = (path("userRecords") & get) {
-    AdminAction { _ =>
-      getFromResource("html/admin.html")
-    }
+  private val startSynData=(path("startSynData") & get & pathEndOrSingleSlash) {
+    synDataActor ! StopSynData
+    synDataActor ! StartSynData
+    complete(SuccessRsp())
   }
 
-  private val management: Route = (path("management") & get) {
-    AdminAction { _ =>
-      getFromResource("html/admin.html")
-    }
+  private val stopSynData=(path("stopSynData") & get & pathEndOrSingleSlash) {
+    synDataActor ! StopSynData
+    complete(ErrorRsp(0, "Ok"))
   }
-
-  private val redElRecords: Route = (path("redElRecords") & get) {
-    AdminAction { _ =>
-      getFromResource("html/admin.html")
-    }
-  }
-
-  private val userRecharge: Route = (path("userRecharge") & get) {
-    AdminAction { _ =>
-      getFromResource("html/admin.html")
-    }
-  }
-
 
   val adminRoutes: Route =
     pathPrefix("admin") {
-      login ~ home ~ statistic ~ userRecords ~ management  ~ redElRecords ~
-      userRecharge
+      adminIndex ~ startSynData ~ stopSynData
     }
 }

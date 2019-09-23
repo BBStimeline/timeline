@@ -47,19 +47,12 @@ object AppSettings {
   val weixinDesc = weixinConfig.getString("desc")
   val withdrawLimit = weixinConfig.getInt("withdrawLimit")
 
-	val orderStatePaying = appConfig.getInt("orderStatePaying")
-	val orderStateFinish = appConfig.getInt("orderStateFinish")
-	val orderStateRefund = appConfig.getInt("orderStateRefund")
-  val orderStateClosed = appConfig.getInt("orderStateClosed")
-  val orderStateCancelled = appConfig.getInt("orderStateCancelled")
-
-  val feeMin = appConfig.getInt("feeMin")
-  val feeMax = appConfig.getInt("feeMax")
 
 
   val httpInterface = appConfig.getString("http.interface")
   val httpPort = appConfig.getInt("http.port")
-
+  val httpHost = appConfig.getString("http.host")
+  val httpDomain =appConfig.getString("http.domain")
 
   val slickConfig = config.getConfig("slick.db")
   val slickUrl = slickConfig.getString("url")
@@ -79,6 +72,32 @@ object AppSettings {
   val rechargeFeeMax = dependenceConfig.getInt("rechargeFeeMax")
   val isTest = dependenceConfig.getBoolean("isTest")
   val authCheck = dependenceConfig.getBoolean("authCheck")
+
+  val feedCnt = dependenceConfig.getInt("feedCnt")
+  val feedClean = dependenceConfig.getInt("feedClean")
+  val actorWait = dependenceConfig.getInt("actorWait")
+  val checkObjTime = dependenceConfig.getInt("checkObjTime")
+  val keepSnapTime = dependenceConfig.getInt("keepSnapTime")
+  val postActorWait = dependenceConfig.getInt("postActorWait")
+
+
+  val smallSpiderConfig = appConfig.getConfig("smallSpider")
+  val smallSpiderProtocol = smallSpiderConfig.getString("protocol")
+  val smallSpiderDomain = smallSpiderConfig.getString("domain")
+  val smallSpiderAppId = smallSpiderConfig.getString("appId")
+  val smallSpiderSecureKey = smallSpiderConfig.getString("secureKey")
+  val isStart = smallSpiderConfig.getBoolean("isStart")
+  val synCount=smallSpiderConfig.getInt("synDataCount")
+  val synTime=smallSpiderConfig.getInt("synDataTime")
+  val synOutTime=smallSpiderConfig.getInt("synOutTime")
+
+  val mailConfig = config.getConfig("mail")
+  val mailHost = mailConfig.getString("server.host")
+  val mailUsername = mailConfig.getString("server.username")
+  val mailPassword = mailConfig.getString("server.password")
+  val mailPort = mailConfig.getInt("server.port")
+  val defaultEncoding = mailConfig.getString("server.defaultEncoding")
+  val mailFrom = mailConfig.getString("email.from")
 
   val sessionConfig = {
     val sConf = config.getConfig("session")
@@ -104,6 +123,9 @@ object AppSettings {
     appIds.zip(secureKeys).toMap
   }
 
+  /**程序基本配置*/
+  val timelineConfig = appConfig.getConfig("timeline")
+  val defaultHeadImg=timelineConfig.getString("defaultHeadImg")
 
 
 

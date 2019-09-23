@@ -75,8 +75,8 @@ trait HttpUtil {
 
   private def parseResp(response: Response, charset: Charset) = {
     val body = new String(response.getResponseBodyAsBytes, charset)
-    log.debug("getRequestSend response headers:" + response.getHeaders)
-    log.debug("getRequestSend response body:" + body)
+//    log.debug("getRequestSend response headers:" + response.getHeaders)
+//    log.debug("getRequestSend response body:" + body)
     if (response.getStatusCode != 200) {
       val uri = response.getUri
       val bodyLength = body.length
@@ -104,10 +104,10 @@ trait HttpUtil {
     headers:List[(String,String)] = List(("Content-Type","application/json")),
     charsetName: String = "UTF-8"
   )(implicit executor: ExecutionContext): Future[Either[Throwable, String]] = {
-    log.info("Post Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
-    log.debug(methodName + " parameters=" + parameters)
-    log.debug(methodName + " postData=" + jsonStr)
+//    log.info("Post Request [" + methodName + "] Processing...")
+//    log.debug(methodName + " url=" + url)
+//    log.debug(methodName + " parameters=" + parameters)
+//    log.debug(methodName + " postData=" + jsonStr)
     val cs = Charset.forName(charsetName)
     val request = ahClient.
       preparePost(url).

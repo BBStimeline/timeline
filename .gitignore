@@ -87,3 +87,5 @@ shared/.jvm/
 /backend/seed1/
 /backend/image/
 /backend/history.txt
+/backend/src/main/resources/galaxy_public_board.csv
+/backend/src/main/resources/product.conf

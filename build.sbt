@@ -1,6 +1,5 @@
-
-
-import xerial.sbt.Pack.{packExtraClasspath, packJvmOpts, packMain}
+// shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
@@ -8,7 +7,7 @@ val scalaV = "2.12.4"
 //val scalaV = "2.11.8"
 
 val projectName = "timeline"
-val projectVersion = "0.0.1"
+val projectVersion = "0.0.5"
 
 
 
@@ -49,7 +48,6 @@ lazy val frontend = (project in file("frontend"))
     ))
   .settings(skip in packageJSDependencies := false)
   .settings(
-
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
       "io.circe" %%% "circe-core" % "0.8.0",
@@ -59,7 +57,10 @@ lazy val frontend = (project in file("frontend"))
       "me.chrons" %%% "diode" % "1.1.0",
       //      "io.suzaku" %%% "diode" % "1.1.2",
       //"com.lihaoyi" %%% "upickle" % upickleV,
-      "com.lihaoyi" %%% "scalatags" % "0.6.5"
+      "com.lihaoyi" %%% "scalatags" % "0.6.5",
+      "in.nvilla" %%% "monadic-html" % "0.4.0-RC1",
+      //"in.nvilla" %%% "monadic-rx-cats" % "0.4.0-RC1",
+      "com.github.japgolly.scalacss" %%% "core" % "0.5.5"
       //"org.scala-js" %%% "scalajs-java-time" % scalaJsJavaTime
       //"com.lihaoyi" %%% "utest" % "0.3.0" % "test"
     )
@@ -77,7 +78,7 @@ lazy val backend = (project in file("backend"))
   .settings(
     //pack
     // If you need to specify main classes manually, use packSettings and packMain
-    packSettings,
+//    packSettings,
     // [Optional] Creating `hello` command that calls org.mydomain.Hello#main(Array[String])
     packMain := Map("timeline" -> projectMainClass),
     packJvmOpts := Map("timeline" -> Seq("-Xmx256m", "-Xms128m")),

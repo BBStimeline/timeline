@@ -2,20 +2,20 @@ package com.neo.sk.timeline.service
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server
-import akka.http.scaladsl.server.Directives.{extractRequestContext, redirect}
+import akka.http.scaladsl.server.Directives.{complete, extractRequestContext, redirect}
 import akka.http.scaladsl.server.{Directive, Directive0, Directive1, RequestContext}
 import akka.http.scaladsl.server.directives.BasicDirectives
 import com.neo.sk.timeline.common.AppSettings
-import com.neo.sk.timeline.utils.SessionSupport
+import com.neo.sk.timeline.shared.ptcl.ErrorRsp
+import com.neo.sk.timeline.utils.{CirceSupport, SessionSupport}
 import org.slf4j.LoggerFactory
-
 /**
   * User: Taoz
   * Date: 12/4/2016
   * Time: 7:57 PM
   */
 
-object SessionBase {
+object SessionBase{
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   val SessionTypeKey = "STKey"
@@ -23,7 +23,12 @@ object SessionBase {
   object UserSessionKey {
     val SESSION_TYPE = "userSession"
     val uid = "uid"
+    val userId = "userId"
+    val bbsId = "bbsId"
     val loginTime = "loginTime"
+
+    val signature="signature"
+    val keyCode="keyCode"
   }
 
   object AdminSessionKey {
@@ -49,22 +54,27 @@ object SessionBase {
 
   case class UserSession(
     uid: Long,
+    userId: String,
+    bbsId:String = "guest",
     loginTime: Long
   ) {
     def toSessionMap = Map(
       SessionTypeKey -> UserSessionKey.SESSION_TYPE,
       UserSessionKey.uid -> uid.toString,
+      UserSessionKey.userId -> userId,
       UserSessionKey.loginTime -> loginTime.toString
     )
   }
 
   implicit class SessionTransformer(sessionMap: Map[String, String]) {
     def toUserSession: Option[UserSession] = {
-      logger.debug(s"toUserSession: change map to session, ${sessionMap.mkString(",")}")
+//      logger.debug(s"toUserSession: change map to session, ${sessionMap.mkString(",")}")
       try {
         if (sessionMap.get(SessionTypeKey).exists(_.equals(UserSessionKey.SESSION_TYPE))) {
           Some(UserSession(
             sessionMap(UserSessionKey.uid).toLong,
+            sessionMap(UserSessionKey.userId),
+            sessionMap(UserSessionKey.bbsId),
             sessionMap(UserSessionKey.loginTime).toLong
           ))
         } else {
@@ -103,7 +113,7 @@ object SessionBase {
 
 }
 
-trait SessionBase extends SessionSupport {
+trait SessionBase extends SessionSupport with ServiceUtils{
 
   import SessionBase._
 
@@ -145,6 +155,23 @@ trait SessionBase extends SessionSupport {
         }
       case None =>
         redirect("/timeline/admin/login", StatusCodes.SeeOther)
+    }
+  }
+
+  import io.circe.Error
+  import io.circe.generic.auto._
+
+  protected def UserAction(f: UserSession => server.Route): server.Route = {
+    optionalUserSession {
+      case Some(userSession) =>
+        if (System.currentTimeMillis() - userSession.loginTime > sessionTimeOut) {
+          logger.info("Login failed for Timeout !")
+          complete(ErrorRsp(123456, "session error.."))
+        } else {
+          f(UserSession(userSession.uid,userSession.userId,userSession.bbsId,userSession.loginTime))
+        }
+      case None =>
+        complete(ErrorRsp(123456, "session error.."))
     }
   }
 

@@ -19,11 +19,11 @@ object MySlickCodeGenerator {
 
   val slickDriver = "slick.jdbc.PostgresProfile"
   val jdbcDriver = "org.postgresql.Driver"
-  val url = "jdbc:postgresql://10.1.29.247:5432/timeline"
+  val url = "jdbc:postgresql://localhost:5432/timeline"
   val outputFolder = "target/gencode/genTablesPsql"
   val pkg = "com.neo.sk.timeline.models"
-  val user = "timeline"
-  val password = "20Cre18Dit"
+  val user = "postgres"
+  val password = "123456"
 
   //val dbDriver = MySQLDriver
 
