@@ -1,6 +1,5 @@
-
-
-import xerial.sbt.Pack.{packExtraClasspath, packJvmOpts, packMain}
+// shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
@@ -79,7 +78,7 @@ lazy val backend = (project in file("backend"))
   .settings(
     //pack
     // If you need to specify main classes manually, use packSettings and packMain
-    packSettings,
+//    packSettings,
     // [Optional] Creating `hello` command that calls org.mydomain.Hello#main(Array[String])
     packMain := Map("timeline" -> projectMainClass),
     packJvmOpts := Map("timeline" -> Seq("-Xmx256m", "-Xms128m")),
